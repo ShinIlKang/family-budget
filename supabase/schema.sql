@@ -34,5 +34,6 @@ CREATE TABLE budgets (
 
 -- 인덱스 (family_id 기준 조회 최적화)
 CREATE INDEX idx_transactions_family_date ON transactions (family_id, date DESC);
+CREATE INDEX idx_transactions_family_category ON transactions (family_id, category_id);
 CREATE INDEX idx_categories_family ON categories (family_id);
 CREATE INDEX idx_budgets_family_ym ON budgets (family_id, year, month);

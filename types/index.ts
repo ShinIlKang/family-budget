@@ -7,6 +7,7 @@ export interface Category {
   color: string   // hex, 예: '#ef4444'
   icon: string    // emoji, 예: '🍽️'
   is_default: boolean
+  created_at: string
 }
 
 export interface Transaction {
