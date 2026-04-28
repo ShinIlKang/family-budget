@@ -240,7 +240,7 @@ export async function getFixedItemsSummary(
 ): Promise<{ total: number; activeCount: number }> {
   const { data, error } = await supabase
     .from('fixed_items')
-    .select('amount, is_active')
+    .select('amount')
     .eq('family_id', familyId)
     .eq('is_active', true)
   if (error) throw error
