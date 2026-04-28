@@ -33,7 +33,7 @@ export default function FixedItemsPage() {
 
   async function handleDelete() {
     if (!editing) return
-    await deleteFixedItem((editing as FixedItem).id)
+    await deleteFixedItem(editing.id)
     setEditing(undefined)
     await load()
   }

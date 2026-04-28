@@ -16,6 +16,7 @@ export default function FixedItemList({ items, onEdit }: Props) {
   const [activeTab, setActiveTab] = useState<FixedItemGroup | typeof ALL_TAB>(ALL_TAB)
 
   const filtered = activeTab === ALL_TAB ? items : items.filter(i => i.group_name === activeTab)
+  // 탭 필터와 무관하게 전체 활성 항목 합계를 표시
   const activeTotal = items.filter(i => i.is_active).reduce((s, i) => s + i.amount, 0)
 
   return (

@@ -24,23 +24,29 @@ export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }:
     const parsed = parseInt(amount.replace(/,/g, ''))
     if (!name.trim() || isNaN(parsed) || parsed <= 0) return
     setLoading(true)
-    await onSubmit({
-      name: name.trim(),
-      amount: parsed,
-      group_name: groupName,
-      billing_day: billingDay ? parseInt(billingDay) : null,
-      memo: memo.trim() || null,
-      is_active: isActive,
-    })
-    setLoading(false)
+    try {
+      await onSubmit({
+        name: name.trim(),
+        amount: parsed,
+        group_name: groupName,
+        billing_day: billingDay ? parseInt(billingDay) : null,
+        memo: memo.trim() || null,
+        is_active: isActive,
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleDelete() {
     if (!onDelete) return
     if (!confirm('이 항목을 삭제하시겠습니까?')) return
     setLoading(true)
-    await onDelete()
-    setLoading(false)
+    try {
+      await onDelete()
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
