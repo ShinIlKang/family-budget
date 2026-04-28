@@ -37,3 +37,18 @@ CREATE INDEX idx_transactions_family_date ON transactions (family_id, date DESC)
 CREATE INDEX idx_transactions_family_category ON transactions (family_id, category_id);
 CREATE INDEX idx_categories_family ON categories (family_id);
 CREATE INDEX idx_budgets_family_ym ON budgets (family_id, year, month);
+
+-- 고정비 항목
+CREATE TABLE fixed_items (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  family_id   TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  amount      INTEGER NOT NULL CHECK (amount > 0),
+  group_name  TEXT NOT NULL,
+  billing_day INTEGER CHECK (billing_day BETWEEN 1 AND 31),
+  memo        TEXT,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_fixed_items_family ON fixed_items (family_id);

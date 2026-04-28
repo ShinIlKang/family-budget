@@ -47,3 +47,34 @@ export interface BudgetWithUsage extends Budget {
   used: number            // 해당 월 실제 지출액
   category: Category
 }
+
+export type FixedItemGroup =
+  | '구독/서비스'
+  | '보험/금융'
+  | '공과금'
+  | '통신/교통'
+  | '주거'
+  | '교육'
+  | '저축/투자'
+
+export const FIXED_ITEM_GROUPS: FixedItemGroup[] = [
+  '구독/서비스',
+  '보험/금융',
+  '공과금',
+  '통신/교통',
+  '주거',
+  '교육',
+  '저축/투자',
+]
+
+export interface FixedItem {
+  id: string
+  family_id: string
+  name: string
+  amount: number
+  group_name: FixedItemGroup
+  billing_day: number | null
+  memo: string | null
+  is_active: boolean
+  created_at: string
+}
