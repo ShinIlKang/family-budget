@@ -365,3 +365,70 @@ export async function getAssetsSummary(
   }
   return { total, byCategory }
 }
+
+// ─── 자산 원장 ──────────────────────────────────────────────
+
+export async function autoAccumulateAssets(familyId: string): Promise<void> {
+  const { data: assets, error: aErr } = await supabase
+    .from('assets')
+    .select('id, initial_balance, created_at, linked_fixed_item_id, fixed_item:fixed_items!linked_fixed_item_id(billing_day, amount)')
+    .eq('family_id', familyId)
+    .not('linked_fixed_item_id', 'is', null)
+  if (aErr) throw aErr
+  if (!assets || assets.length === 0) return
+
+  const today = new Date()
+  const todayYear = today.getFullYear()
+  const todayMonth = today.getMonth() + 1
+  const todayDay = today.getDate()
+
+  for (const asset of assets) {
+    const fi = asset.fixed_item as unknown as { billing_day: number | null; amount: number } | null
+    if (!fi) continue
+
+    const createdAt = new Date(asset.created_at)
+    let year = createdAt.getFullYear()
+    let month = createdAt.getMonth() + 1
+
+    const months: string[] = []
+    while (year < todayYear || (year === todayYear && month <= todayMonth)) {
+      if (year === todayYear && month === todayMonth) {
+        if (fi.billing_day && todayDay < fi.billing_day) break
+      }
+      months.push(`${year}-${String(month).padStart(2, '0')}`)
+      month++
+      if (month > 12) { month = 1; year++ }
+    }
+
+    for (const recordedMonth of months) {
+      await supabase.from('asset_ledger').upsert(
+        {
+          asset_id: asset.id,
+          amount: fi.amount,
+          entry_type: 'auto',
+          source_type: 'fixed_item',
+          source_id: asset.linked_fixed_item_id,
+          recorded_month: recordedMonth,
+        },
+        { onConflict: 'asset_id,recorded_month', ignoreDuplicates: true }
+      )
+    }
+  }
+}
+
+export async function addManualLedgerEntry(
+  assetId: string,
+  amount: number,
+  sourceId: string,
+  memo?: string
+): Promise<void> {
+  const { error } = await supabase.from('asset_ledger').insert({
+    asset_id: assetId,
+    amount,
+    entry_type: 'manual',
+    source_type: 'transaction',
+    source_id: sourceId,
+    memo: memo ?? null,
+  })
+  if (error) throw error
+}
