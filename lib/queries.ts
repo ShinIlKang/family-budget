@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage } from '@/types'
+import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem } from '@/types'
 import { getMonthRange } from '@/lib/utils'
 
 // ─── 카테고리 ───────────────────────────────────────────────
@@ -187,4 +187,65 @@ export async function getMonthlyStats(
     })
   )
   return results
+}
+
+
+// ─── 고정비 항목 ────────────────────────────────────────────
+
+export async function getFixedItems(familyId: string): Promise<FixedItem[]> {
+  const { data, error } = await supabase
+    .from('fixed_items')
+    .select('*')
+    .eq('family_id', familyId)
+    .order('group_name')
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+export async function createFixedItem(
+  familyId: string,
+  input: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>
+): Promise<FixedItem> {
+  const { data, error } = await supabase
+    .from('fixed_items')
+    .insert({ family_id: familyId, ...input })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateFixedItem(
+  id: string,
+  input: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>
+): Promise<FixedItem> {
+  const { data, error } = await supabase
+    .from('fixed_items')
+    .update(input)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteFixedItem(id: string): Promise<void> {
+  const { error } = await supabase.from('fixed_items').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function getFixedItemsSummary(
+  familyId: string
+): Promise<{ total: number; activeCount: number }> {
+  const { data, error } = await supabase
+    .from('fixed_items')
+    .select('amount, is_active')
+    .eq('family_id', familyId)
+    .eq('is_active', true)
+  if (error) throw error
+  return {
+    total: (data ?? []).reduce((s, i) => s + i.amount, 0),
+    activeCount: (data ?? []).length,
+  }
 }
