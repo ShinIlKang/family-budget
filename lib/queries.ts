@@ -253,11 +253,12 @@ export async function getFixedItemsSummary(
 // ─── 가족 설정 ───────────────────────────────────────────────
 
 export async function getOrCreateFamily(familyId: string): Promise<Family> {
-  const { data: existing } = await supabase
+  const { data: existing, error: sErr } = await supabase
     .from('families')
     .select('*')
     .eq('id', familyId)
     .maybeSingle()
+  if (sErr) throw sErr
   if (existing) return existing
 
   const { data, error } = await supabase
@@ -302,18 +303,21 @@ export async function getAssetsWithBalance(familyId: string): Promise<Asset[]> {
     sums.set(e.asset_id, (sums.get(e.asset_id) ?? 0) + e.amount)
   }
 
-  return (assets ?? []).map(a => ({
-    id: a.id,
-    family_id: a.family_id,
-    name: a.name,
-    category: a.category as AssetCategory,
-    initial_balance: a.initial_balance,
-    linked_fixed_item_id: a.linked_fixed_item_id,
-    created_at: a.created_at,
-    current_balance: a.initial_balance + (sums.get(a.id) ?? 0),
-    linked_fixed_item_name: (a.fixed_item as { name: string } | null)?.name ?? null,
-    linked_billing_day: (a.fixed_item as { billing_day: number | null } | null)?.billing_day ?? null,
-  }))
+  return (assets ?? []).map(a => {
+    const fi = a.fixed_item as { name: string; billing_day: number | null } | null
+    return {
+      id: a.id,
+      family_id: a.family_id,
+      name: a.name,
+      category: a.category as AssetCategory,
+      initial_balance: a.initial_balance,
+      linked_fixed_item_id: a.linked_fixed_item_id,
+      created_at: a.created_at,
+      current_balance: a.initial_balance + (sums.get(a.id) ?? 0),
+      linked_fixed_item_name: fi?.name ?? null,
+      linked_billing_day: fi?.billing_day ?? null,
+    }
+  })
 }
 
 export async function createAsset(
