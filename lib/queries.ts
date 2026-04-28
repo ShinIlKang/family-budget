@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem } from '@/types'
+import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem, Family, Asset, AssetCategory } from '@/types'
 import { getMonthRange } from '@/lib/utils'
 
 // ─── 카테고리 ───────────────────────────────────────────────
@@ -248,4 +248,116 @@ export async function getFixedItemsSummary(
     total: (data ?? []).reduce((s, i) => s + i.amount, 0),
     activeCount: (data ?? []).length,
   }
+}
+
+// ─── 가족 설정 ───────────────────────────────────────────────
+
+export async function getOrCreateFamily(familyId: string): Promise<Family> {
+  const { data: existing } = await supabase
+    .from('families')
+    .select('*')
+    .eq('id', familyId)
+    .maybeSingle()
+  if (existing) return existing
+
+  const { data, error } = await supabase
+    .from('families')
+    .insert({ id: familyId })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateFamily(
+  familyId: string,
+  data: Partial<Pick<Family, 'monthly_income' | 'onboarding_completed'>>
+): Promise<void> {
+  const { error } = await supabase.from('families').update(data).eq('id', familyId)
+  if (error) throw error
+}
+
+// ─── 자산 ────────────────────────────────────────────────────
+
+export async function getAssetsWithBalance(familyId: string): Promise<Asset[]> {
+  const { data: assets, error: aErr } = await supabase
+    .from('assets')
+    .select('*, fixed_item:fixed_items!linked_fixed_item_id(name, billing_day)')
+    .eq('family_id', familyId)
+    .order('category')
+    .order('name')
+  if (aErr) throw aErr
+
+  const ids = (assets ?? []).map(a => a.id)
+  if (ids.length === 0) return []
+
+  const { data: ledger, error: lErr } = await supabase
+    .from('asset_ledger')
+    .select('asset_id, amount')
+    .in('asset_id', ids)
+  if (lErr) throw lErr
+
+  const sums = new Map<string, number>()
+  for (const e of ledger ?? []) {
+    sums.set(e.asset_id, (sums.get(e.asset_id) ?? 0) + e.amount)
+  }
+
+  return (assets ?? []).map(a => ({
+    id: a.id,
+    family_id: a.family_id,
+    name: a.name,
+    category: a.category as AssetCategory,
+    initial_balance: a.initial_balance,
+    linked_fixed_item_id: a.linked_fixed_item_id,
+    created_at: a.created_at,
+    current_balance: a.initial_balance + (sums.get(a.id) ?? 0),
+    linked_fixed_item_name: (a.fixed_item as { name: string } | null)?.name ?? null,
+    linked_billing_day: (a.fixed_item as { billing_day: number | null } | null)?.billing_day ?? null,
+  }))
+}
+
+export async function createAsset(
+  familyId: string,
+  input: Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>
+): Promise<Asset> {
+  const { data, error } = await supabase
+    .from('assets')
+    .insert({ family_id: familyId, ...input })
+    .select()
+    .single()
+  if (error) throw error
+  return { ...data, category: data.category as AssetCategory }
+}
+
+export async function updateAsset(
+  id: string,
+  input: Partial<Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>>
+): Promise<Asset> {
+  const { data, error } = await supabase
+    .from('assets')
+    .update(input)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return { ...data, category: data.category as AssetCategory }
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  const { error } = await supabase.from('assets').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function getAssetsSummary(
+  familyId: string
+): Promise<{ total: number; byCategory: Record<AssetCategory, number> }> {
+  const assets = await getAssetsWithBalance(familyId)
+  const byCategory: Record<AssetCategory, number> = { 금융: 0, 투자: 0, 보증금: 0 }
+  let total = 0
+  for (const a of assets) {
+    const bal = a.current_balance ?? a.initial_balance
+    byCategory[a.category] += bal
+    total += bal
+  }
+  return { total, byCategory }
 }
