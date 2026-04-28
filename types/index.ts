@@ -78,3 +78,38 @@ export interface FixedItem {
   is_active: boolean
   created_at: string
 }
+
+export interface Family {
+  id: string
+  monthly_income: number
+  onboarding_completed: boolean
+  created_at: string
+}
+
+export type AssetCategory = '금융' | '투자' | '보증금'
+export const ASSET_CATEGORIES: AssetCategory[] = ['금융', '투자', '보증금']
+
+export interface Asset {
+  id: string
+  family_id: string
+  name: string
+  category: AssetCategory
+  initial_balance: number
+  linked_fixed_item_id: string | null
+  created_at: string
+  current_balance?: number
+  linked_fixed_item_name?: string | null
+  linked_billing_day?: number | null
+}
+
+export interface AssetLedger {
+  id: string
+  asset_id: string
+  amount: number
+  entry_type: 'auto' | 'manual'
+  source_type: 'fixed_item' | 'transaction' | null
+  source_id: string | null
+  recorded_month: string | null
+  memo: string | null
+  created_at: string
+}
