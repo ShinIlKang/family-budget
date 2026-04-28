@@ -52,3 +52,39 @@ CREATE TABLE fixed_items (
 );
 
 CREATE INDEX idx_fixed_items_family ON fixed_items (family_id);
+
+-- 가족 설정
+CREATE TABLE families (
+  id                   TEXT PRIMARY KEY,
+  monthly_income       INTEGER NOT NULL DEFAULT 0,
+  onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 자산 항목
+CREATE TABLE assets (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  family_id            TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  name                 TEXT NOT NULL,
+  category             TEXT NOT NULL CHECK (category IN ('금융', '투자', '보증금')),
+  initial_balance      INTEGER NOT NULL DEFAULT 0 CHECK (initial_balance >= 0),
+  linked_fixed_item_id UUID REFERENCES fixed_items(id) ON DELETE SET NULL,
+  created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 적립 원장
+CREATE TABLE asset_ledger (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id       UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+  amount         INTEGER NOT NULL,
+  entry_type     TEXT NOT NULL CHECK (entry_type IN ('auto', 'manual')),
+  source_type    TEXT CHECK (source_type IN ('fixed_item', 'transaction')),
+  source_id      UUID,
+  recorded_month TEXT,
+  memo           TEXT,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (asset_id, recorded_month)
+);
+
+CREATE INDEX idx_assets_family ON assets (family_id);
+CREATE INDEX idx_asset_ledger_asset ON asset_ledger (asset_id);
