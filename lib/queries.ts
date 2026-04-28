@@ -401,7 +401,7 @@ export async function autoAccumulateAssets(familyId: string): Promise<void> {
     }
 
     for (const recordedMonth of months) {
-      await supabase.from('asset_ledger').upsert(
+      const { error: uErr } = await supabase.from('asset_ledger').upsert(
         {
           asset_id: asset.id,
           amount: fi.amount,
@@ -412,6 +412,7 @@ export async function autoAccumulateAssets(familyId: string): Promise<void> {
         },
         { onConflict: 'asset_id,recorded_month', ignoreDuplicates: true }
       )
+      if (uErr) throw uErr
     }
   }
 }
