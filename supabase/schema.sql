@@ -76,7 +76,7 @@ CREATE TABLE assets (
 CREATE TABLE asset_ledger (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id       UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
-  amount         INTEGER NOT NULL,
+  amount         INTEGER NOT NULL CHECK (amount != 0),
   entry_type     TEXT NOT NULL CHECK (entry_type IN ('auto', 'manual')),
   source_type    TEXT CHECK (source_type IN ('fixed_item', 'transaction')),
   source_id      UUID,
