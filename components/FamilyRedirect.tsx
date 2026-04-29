@@ -2,17 +2,26 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
+import { getOrCreateFamily } from '@/lib/queries'
 
 export default function FamilyRedirect() {
   const router = useRouter()
 
   useEffect(() => {
-    let familyId = localStorage.getItem('familyId')
-    if (!familyId) {
-      familyId = nanoid(12)
-      localStorage.setItem('familyId', familyId)
+    async function init() {
+      let familyId = localStorage.getItem('familyId')
+      if (!familyId) {
+        familyId = nanoid(12)
+        localStorage.setItem('familyId', familyId)
+      }
+      const family = await getOrCreateFamily(familyId)
+      if (family.onboarding_completed) {
+        router.replace(`/${familyId}`)
+      } else {
+        router.replace(`/${familyId}/onboarding`)
+      }
     }
-    router.replace(`/${familyId}`)
+    init()
   }, [router])
 
   return (
