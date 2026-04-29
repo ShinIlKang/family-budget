@@ -7,11 +7,12 @@ interface Props {
 }
 
 const tabs = [
-  { href: '', label: '홈', icon: '🏠' },
+  { href: '',              label: '홈',   icon: '🏠' },
   { href: '/transactions', label: '내역', icon: '📋' },
-  { href: '/budgets', label: '예산', icon: '🎯' },
-  { href: '/fixed-items', label: '고정비', icon: '📌' },
-  { href: '/stats', label: '통계', icon: '📈' },
+  { href: '/budgets',      label: '예산', icon: '🎯' },
+  { href: '/fixed-items',  label: '고정비', icon: '📌' },
+  { href: '/assets',       label: '자산', icon: '💰' },
+  { href: '/stats',        label: '통계', icon: '📈' },
 ]
 
 export default function BottomNav({ familyId }: Props) {
