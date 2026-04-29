@@ -45,9 +45,10 @@ CREATE TABLE fixed_items (
   name        TEXT NOT NULL,
   amount      INTEGER NOT NULL CHECK (amount > 0),
   group_name  TEXT NOT NULL,
-  billing_day INTEGER CHECK (billing_day BETWEEN 1 AND 31),
-  memo        TEXT,
-  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  billing_day     INTEGER CHECK (billing_day BETWEEN 1 AND 31),
+  payment_method  TEXT,
+  memo            TEXT,
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 

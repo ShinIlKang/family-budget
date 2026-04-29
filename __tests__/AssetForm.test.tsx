@@ -10,6 +10,7 @@ const mockFixedItems: FixedItem[] = [
     amount: 200000,
     group_name: '저축/투자',
     billing_day: 25,
+    payment_method: null,
     memo: null,
     is_active: true,
     created_at: '2026-01-01',

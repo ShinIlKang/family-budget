@@ -67,6 +67,16 @@ export const FIXED_ITEM_GROUPS: FixedItemGroup[] = [
   '저축/투자',
 ]
 
+export type PaymentMethod = '자동이체' | '신용카드' | '체크카드' | '현금' | '기타'
+
+export const PAYMENT_METHODS: PaymentMethod[] = [
+  '자동이체',
+  '신용카드',
+  '체크카드',
+  '현금',
+  '기타',
+]
+
 export interface FixedItem {
   id: string
   family_id: string
@@ -74,6 +84,7 @@ export interface FixedItem {
   amount: number
   group_name: FixedItemGroup
   billing_day: number | null
+  payment_method: PaymentMethod | null
   memo: string | null
   is_active: boolean
   created_at: string

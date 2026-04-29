@@ -9,6 +9,7 @@ const mockItem: FixedItem = {
   amount: 14900,
   group_name: '구독/서비스',
   billing_day: 1,
+  payment_method: null,
   memo: null,
   is_active: true,
   created_at: '2026-01-01',
