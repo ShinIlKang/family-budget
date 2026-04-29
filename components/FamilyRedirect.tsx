@@ -21,7 +21,7 @@ export default function FamilyRedirect() {
         router.replace(`/${familyId}/onboarding`)
       }
     }
-    init()
+    init().catch(err => console.error('FamilyRedirect init 실패:', err))
   }, [router])
 
   return (
