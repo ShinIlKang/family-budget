@@ -17,20 +17,32 @@ export default function Step2FixedItems({ familyId, onNext, onBack }: Props) {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const load = useCallback(async () => {
-    setItems(await getFixedItems(familyId))
+    try {
+      setItems(await getFixedItems(familyId))
+    } catch (e) {
+      console.error('고정비 로드 실패:', e)
+    }
   }, [familyId])
 
   useEffect(() => { load() }, [load])
 
   async function handleSubmit(data: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>) {
-    await createFixedItem(familyId, data)
-    setIsFormOpen(false)
-    await load()
+    try {
+      await createFixedItem(familyId, data)
+      setIsFormOpen(false)
+      await load()
+    } catch (e) {
+      console.error('고정비 저장 실패:', e)
+    }
   }
 
   async function handleDelete(id: string) {
-    await deleteFixedItem(id)
-    await load()
+    try {
+      await deleteFixedItem(id)
+      await load()
+    } catch (e) {
+      console.error('고정비 삭제 실패:', e)
+    }
   }
 
   return (
