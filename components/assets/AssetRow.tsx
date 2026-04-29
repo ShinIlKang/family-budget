@@ -14,10 +14,10 @@ export default function AssetRow({ asset, onEdit }: Props) {
     >
       <div>
         <p className="text-sm font-medium text-gray-800">{asset.name}</p>
-        <p className="text-xs text-gray-400">
-          {asset.category}
-          {asset.linked_billing_day ? ` · 매월 ${asset.linked_billing_day}일` : ''}
-        </p>
+        <p className="text-xs text-gray-400">{asset.category}</p>
+        {asset.linked_billing_day && (
+          <p className="text-xs text-gray-400">매월 {asset.linked_billing_day}일</p>
+        )}
       </div>
       <p className="text-sm font-semibold text-emerald-600">
         {formatAmount(asset.current_balance ?? asset.initial_balance)}원
