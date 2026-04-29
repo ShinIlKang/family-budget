@@ -1,6 +1,7 @@
 // components/onboarding/OnboardingWizard.tsx
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getOrCreateFamily, getFixedItems } from '@/lib/queries'
 import Step1Assets from './Step1Assets'
 import Step2FixedItems from './Step2FixedItems'
 import Step3LinkAssets from './Step3LinkAssets'
@@ -13,21 +14,31 @@ interface Props {
 const STEP_LABELS = ['자산 현황 등록', '고정비 입력', '자산 연결', '예산 설정']
 
 export default function OnboardingWizard({ familyId }: Props) {
-  const storageKey = `onboarding_step_${familyId}`
+  const [step, setStep] = useState<number | null>(null)
 
-  const [step, setStep] = useState(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem(`onboarding_step_${familyId}`) : null
-    const parsed = saved ? parseInt(saved, 10) : 1
-    return isNaN(parsed) || parsed < 1 || parsed > 4 ? 1 : parsed
-  })
+  useEffect(() => {
+    async function detectStep() {
+      const [family, fixedItems] = await Promise.all([
+        getOrCreateFamily(familyId),
+        getFixedItems(familyId),
+      ])
+      if (fixedItems.length > 0) {
+        setStep(3)
+      } else if (family.monthly_income > 0) {
+        setStep(2)
+      } else {
+        setStep(1)
+      }
+    }
+    detectStep().catch(() => setStep(1))
+  }, [familyId])
 
-  function gotoStep(n: number) {
-    localStorage.setItem(storageKey, String(n))
-    setStep(n)
-  }
-
-  function handleComplete() {
-    localStorage.removeItem(storageKey)
+  if (step === null) {
+    return (
+      <div className="flex items-center justify-center h-full py-20">
+        <p className="text-sm text-gray-400">로딩 중...</p>
+      </div>
+    )
   }
 
   return (
@@ -50,10 +61,10 @@ export default function OnboardingWizard({ familyId }: Props) {
 
       {/* 스텝 콘텐츠 */}
       <div className="flex-1 overflow-y-auto px-4 pb-6">
-        {step === 1 && <Step1Assets familyId={familyId} onNext={() => gotoStep(2)} />}
-        {step === 2 && <Step2FixedItems familyId={familyId} onNext={() => gotoStep(3)} onBack={() => gotoStep(1)} />}
-        {step === 3 && <Step3LinkAssets familyId={familyId} onNext={() => gotoStep(4)} onBack={() => gotoStep(2)} />}
-        {step === 4 && <Step4Budgets familyId={familyId} onBack={() => gotoStep(3)} onComplete={handleComplete} />}
+        {step === 1 && <Step1Assets familyId={familyId} onNext={() => setStep(2)} />}
+        {step === 2 && <Step2FixedItems familyId={familyId} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <Step3LinkAssets familyId={familyId} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
+        {step === 4 && <Step4Budgets familyId={familyId} onBack={() => setStep(3)} />}
       </div>
     </div>
   )

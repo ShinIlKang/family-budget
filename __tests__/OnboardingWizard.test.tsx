@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 
 jest.mock('@/lib/queries', () => ({
   updateFamily: jest.fn().mockResolvedValue(undefined),
   createAsset: jest.fn().mockResolvedValue({}),
+  getOrCreateFamily: jest.fn().mockResolvedValue({ monthly_income: 0, onboarding_completed: false }),
   getFixedItems: jest.fn().mockResolvedValue([]),
   getAssetsWithBalance: jest.fn().mockResolvedValue([]),
   getBudgetsWithUsage: jest.fn().mockResolvedValue([]),
@@ -24,8 +25,8 @@ jest.mock('@/lib/monthStore', () => ({
 }))
 
 describe('OnboardingWizard', () => {
-  it('Step 1 제목을 표시한다', () => {
+  it('DB에 저장된 데이터가 없으면 Step 1을 표시한다', async () => {
     render(<OnboardingWizard familyId="fam1" />)
-    expect(screen.getByText('Step 1 / 4')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Step 1 / 4')).toBeInTheDocument())
   })
 })
