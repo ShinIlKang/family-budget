@@ -6,7 +6,7 @@ import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   initial: FixedItem | null
-  onSubmit: (data: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>) => Promise<void>
+  onSubmit: (data: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at'>) => Promise<void>
   onCancel: () => void
   onDelete: (() => Promise<void>) | undefined
 }

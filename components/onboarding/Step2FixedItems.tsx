@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import type { FixedItem } from '@/types'
 import { getFixedItems, createFixedItem, deleteFixedItem } from '@/lib/queries'
 import { formatAmount } from '@/lib/utils'
@@ -7,28 +8,28 @@ import FixedItemForm from '@/components/fixed-items/FixedItemForm'
 import Modal from '@/components/ui/Modal'
 
 interface Props {
-  familyId: string
   onNext: () => void
   onBack: () => void
 }
 
-export default function Step2FixedItems({ familyId, onNext, onBack }: Props) {
+export default function Step2FixedItems({ onNext, onBack }: Props) {
+  const { data: session } = useSession()
   const [items, setItems] = useState<FixedItem[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      setItems(await getFixedItems(familyId))
+      setItems(await getFixedItems())
     } catch (e) {
       console.error('고정비 로드 실패:', e)
     }
-  }, [familyId])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
-  async function handleSubmit(data: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>) {
+  async function handleSubmit(data: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at'>) {
     try {
-      await createFixedItem(familyId, data)
+      await createFixedItem(data, session?.user.id ?? '')
       setIsFormOpen(false)
       await load()
     } catch (e) {

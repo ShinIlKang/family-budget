@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import type { BudgetWithUsage, Category } from '@/types'
-import { getBudgetsWithUsage, upsertBudget, getCategories, seedDefaultCategories, updateFamily } from '@/lib/queries'
+import { getBudgetsWithUsage, upsertBudget, getCategories, seedDefaultCategories, updateSettings } from '@/lib/queries'
 import { useMonthStore } from '@/lib/monthStore'
 import BudgetCard from '@/components/budgets/BudgetCard'
 import BudgetForm from '@/components/budgets/BudgetForm'
@@ -9,14 +10,14 @@ import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
 
 interface Props {
-  familyId: string
   onBack: () => void
   onComplete?: () => void
 }
 
-export default function Step4Budgets({ familyId, onBack, onComplete }: Props) {
+export default function Step4Budgets({ onBack, onComplete }: Props) {
   const { current } = useMonthStore()
   const router = useRouter()
+  const { data: session } = useSession()
   const [budgets, setBudgets] = useState<BudgetWithUsage[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [editing, setEditing] = useState<BudgetWithUsage | null>(null)
@@ -24,24 +25,24 @@ export default function Step4Budgets({ familyId, onBack, onComplete }: Props) {
 
   const load = useCallback(async () => {
     try {
-      let cats = await getCategories(familyId)
+      let cats = await getCategories()
       if (cats.length === 0) {
-        await seedDefaultCategories(familyId)
-        cats = await getCategories(familyId)
+        await seedDefaultCategories(session?.user.id ?? '')
+        cats = await getCategories()
       }
       setCategories(cats)
-      setBudgets(await getBudgetsWithUsage(familyId, current))
+      setBudgets(await getBudgetsWithUsage(current))
     } catch (e) {
       console.error('예산 로드 실패:', e)
     }
-  }, [familyId, current])
+  }, [current, session?.user.id])
 
   useEffect(() => { load() }, [load])
 
   async function handleSave(amount: number) {
     if (!editing) return
     try {
-      await upsertBudget(familyId, editing.category_id, current, amount)
+      await upsertBudget(editing.category_id, current, amount, session?.user.id ?? '')
       setEditing(null)
       await load()
     } catch (e) {
@@ -53,7 +54,8 @@ export default function Step4Budgets({ familyId, onBack, onComplete }: Props) {
     const existing = budgets.find(b => b.category_id === cat.id)
     return existing ?? {
       id: '',
-      family_id: familyId,
+      created_by: session?.user.id ?? '',
+      updated_by: null,
       category_id: cat.id,
       amount: 0,
       year: current.year,
@@ -66,9 +68,9 @@ export default function Step4Budgets({ familyId, onBack, onComplete }: Props) {
   async function handleComplete() {
     setLoading(true)
     try {
-      await updateFamily(familyId, { onboarding_completed: true })
+      await updateSettings(session?.user.id ?? '', { onboarding_completed: true })
       onComplete?.()
-      router.replace(`/${familyId}`)
+      router.replace('/')
     } catch (e) {
       console.error('온보딩 완료 실패:', e)
     } finally {
