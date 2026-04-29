@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   categoryName: string
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export default function BudgetForm({ categoryName, categoryIcon, currentAmount, onSubmit, onCancel }: Props) {
-  const [amount, setAmount] = useState(currentAmount > 0 ? String(currentAmount) : '')
+  const [amount, setAmount] = useState(currentAmount > 0 ? formatAmountInput(String(currentAmount)) : '')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -29,13 +30,13 @@ export default function BudgetForm({ categoryName, categoryIcon, currentAmount, 
         <p className="text-gray-600 mt-1">{categoryName} 예산</p>
       </div>
       <input
-        type="number"
+        type="text"
+        inputMode="numeric"
         placeholder="예산 금액 (원)"
         value={amount}
-        onChange={e => setAmount(e.target.value)}
+        onChange={e => setAmount(formatAmountInput(e.target.value))}
         className="border border-gray-300 rounded-lg px-3 py-2 text-center text-lg"
         required
-        min={1}
         autoFocus
       />
       <div className="flex gap-2">

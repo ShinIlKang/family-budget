@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import type { Asset, AssetCategory, FixedItem } from '@/types'
 import { ASSET_CATEGORIES } from '@/types'
+import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   initial: Asset | null
@@ -14,7 +15,7 @@ interface Props {
 export default function AssetForm({ initial, fixedItems, onSubmit, onCancel, onDelete }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
   const [category, setCategory] = useState<AssetCategory>(initial?.category ?? '금융')
-  const [balance, setBalance] = useState(initial ? String(initial.initial_balance) : '')
+  const [balance, setBalance] = useState(initial ? formatAmountInput(String(initial.initial_balance)) : '')
   const [linkedId, setLinkedId] = useState(initial?.linked_fixed_item_id ?? '')
   const [loading, setLoading] = useState(false)
 
@@ -63,13 +64,13 @@ export default function AssetForm({ initial, fixedItems, onSubmit, onCancel, onD
         ))}
       </select>
       <input
-        type="number"
+        type="text"
+        inputMode="numeric"
         placeholder="현재 잔액 (원)"
         value={balance}
-        onChange={e => setBalance(e.target.value)}
+        onChange={e => setBalance(formatAmountInput(e.target.value))}
         className="border border-gray-300 rounded-lg px-3 py-2"
         required
-        min={0}
       />
       <select
         value={linkedId}

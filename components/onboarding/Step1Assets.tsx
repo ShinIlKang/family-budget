@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { AssetCategory } from '@/types'
 import { ASSET_CATEGORIES } from '@/types'
-import { formatAmount } from '@/lib/utils'
+import { formatAmount, formatAmountInput } from '@/lib/utils'
 import { updateFamily, createAsset } from '@/lib/queries'
 
 interface Props {
@@ -64,12 +64,12 @@ export default function Step1Assets({ familyId, onNext }: Props) {
       <div>
         <p className="text-sm font-medium text-gray-700 mb-1">월 근로소득</p>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           placeholder="월 수입 (원)"
           value={income}
-          onChange={e => setIncome(e.target.value)}
+          onChange={e => setIncome(formatAmountInput(e.target.value))}
           className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          min={0}
         />
       </div>
 
@@ -103,12 +103,12 @@ export default function Step1Assets({ familyId, onNext }: Props) {
               {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="현재 잔액 (원)"
               value={assetBalance}
-              onChange={e => setAssetBalance(e.target.value)}
+              onChange={e => setAssetBalance(formatAmountInput(e.target.value))}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              min={0}
             />
             <div className="flex gap-2">
               <button

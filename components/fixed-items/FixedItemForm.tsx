@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import type { FixedItem, FixedItemGroup } from '@/types'
 import { FIXED_ITEM_GROUPS } from '@/types'
+import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   initial: FixedItem | null
@@ -12,7 +13,7 @@ interface Props {
 
 export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [amount, setAmount] = useState(initial ? formatAmountInput(String(initial.amount)) : '')
   const [groupName, setGroupName] = useState<FixedItemGroup>(initial?.group_name ?? '구독/서비스')
   const [billingDay, setBillingDay] = useState(initial?.billing_day ? String(initial.billing_day) : '')
   const [memo, setMemo] = useState(initial?.memo ?? '')
@@ -61,13 +62,13 @@ export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }:
         autoFocus
       />
       <input
-        type="number"
+        type="text"
+        inputMode="numeric"
         placeholder="금액 (원)"
         value={amount}
-        onChange={e => setAmount(e.target.value)}
+        onChange={e => setAmount(formatAmountInput(e.target.value))}
         className="border border-gray-300 rounded-lg px-3 py-2"
         required
-        min={1}
       />
       <select
         value={groupName}

@@ -4,6 +4,12 @@ export function formatAmount(amount: number): string {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+export function formatAmountInput(value: string): string {
+  const digits = value.replace(/[^0-9]/g, '')
+  if (!digits) return ''
+  return Number(digits).toLocaleString('ko-KR')
+}
+
 export function formatDate(dateStr: string): string {
   const [, month, day] = dateStr.split('-')
   return `${parseInt(month)}월 ${parseInt(day)}일`

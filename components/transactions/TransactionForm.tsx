@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import type { Transaction, Category, Asset } from '@/types'
+import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   categories: Category[]
@@ -16,7 +17,7 @@ interface Props {
 export default function TransactionForm({ categories, assets, initial, onSubmit, onCancel }: Props) {
   const today = new Date().toISOString().split('T')[0]
   const [type, setType] = useState<'income' | 'expense'>(initial?.type ?? 'expense')
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [amount, setAmount] = useState(initial ? formatAmountInput(String(initial.amount)) : '')
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
   const [memo, setMemo] = useState(initial?.memo ?? '')
   const [date, setDate] = useState(initial?.date ?? today)
@@ -65,13 +66,13 @@ export default function TransactionForm({ categories, assets, initial, onSubmit,
         required
       />
       <input
-        type="number"
+        type="text"
+        inputMode="numeric"
         placeholder="금액 (원)"
         value={amount}
-        onChange={e => setAmount(e.target.value)}
+        onChange={e => setAmount(formatAmountInput(e.target.value))}
         className="border border-gray-300 rounded-lg px-3 py-2"
         required
-        min={1}
       />
       <select
         value={categoryId}
