@@ -13,7 +13,22 @@ interface Props {
 const STEP_LABELS = ['자산 현황 등록', '고정비 입력', '자산 연결', '예산 설정']
 
 export default function OnboardingWizard({ familyId }: Props) {
-  const [step, setStep] = useState(1)
+  const storageKey = `onboarding_step_${familyId}`
+
+  const [step, setStep] = useState(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(`onboarding_step_${familyId}`) : null
+    const parsed = saved ? parseInt(saved, 10) : 1
+    return isNaN(parsed) || parsed < 1 || parsed > 4 ? 1 : parsed
+  })
+
+  function gotoStep(n: number) {
+    localStorage.setItem(storageKey, String(n))
+    setStep(n)
+  }
+
+  function handleComplete() {
+    localStorage.removeItem(storageKey)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -35,10 +50,10 @@ export default function OnboardingWizard({ familyId }: Props) {
 
       {/* 스텝 콘텐츠 */}
       <div className="flex-1 overflow-y-auto px-4 pb-6">
-        {step === 1 && <Step1Assets familyId={familyId} onNext={() => setStep(2)} />}
-        {step === 2 && <Step2FixedItems familyId={familyId} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-        {step === 3 && <Step3LinkAssets familyId={familyId} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-        {step === 4 && <Step4Budgets familyId={familyId} onBack={() => setStep(3)} />}
+        {step === 1 && <Step1Assets familyId={familyId} onNext={() => gotoStep(2)} />}
+        {step === 2 && <Step2FixedItems familyId={familyId} onNext={() => gotoStep(3)} onBack={() => gotoStep(1)} />}
+        {step === 3 && <Step3LinkAssets familyId={familyId} onNext={() => gotoStep(4)} onBack={() => gotoStep(2)} />}
+        {step === 4 && <Step4Budgets familyId={familyId} onBack={() => gotoStep(3)} onComplete={handleComplete} />}
       </div>
     </div>
   )

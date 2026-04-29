@@ -11,9 +11,10 @@ import { useRouter } from 'next/navigation'
 interface Props {
   familyId: string
   onBack: () => void
+  onComplete?: () => void
 }
 
-export default function Step4Budgets({ familyId, onBack }: Props) {
+export default function Step4Budgets({ familyId, onBack, onComplete }: Props) {
   const { current } = useMonthStore()
   const router = useRouter()
   const [budgets, setBudgets] = useState<BudgetWithUsage[]>([])
@@ -66,6 +67,7 @@ export default function Step4Budgets({ familyId, onBack }: Props) {
     setLoading(true)
     try {
       await updateFamily(familyId, { onboarding_completed: true })
+      onComplete?.()
       router.replace(`/${familyId}`)
     } catch (e) {
       console.error('온보딩 완료 실패:', e)
