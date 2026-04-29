@@ -1,35 +1,63 @@
 export type TransactionType = 'income' | 'expense'
 
+export interface Member {
+  id: string
+  username: string
+  name: string
+  phone: string | null
+  role: string
+  is_master: boolean
+  created_at: string
+}
+
+export interface Settings {
+  id: string
+  onboarding_completed: boolean
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface InviteCode {
+  code: string
+  created_by: string
+  expires_at: string
+  used_at: string | null
+  created_at: string
+}
+
 export interface Category {
   id: string
-  family_id: string
   name: string
-  color: string   // hex, 예: '#ef4444'
-  icon: string    // emoji, 예: '🍽️'
+  color: string
+  icon: string
   is_default: boolean
+  created_by: string
+  updated_by: string | null
   created_at: string
 }
 
 export interface Transaction {
   id: string
-  family_id: string
   type: TransactionType
-  amount: number          // 원 단위 정수
+  amount: number
   category_id: string | null
   memo: string | null
-  date: string            // 'YYYY-MM-DD'
+  date: string
+  created_by: string
+  updated_by: string | null
   created_at: string
-  category?: Category     // join 결과
+  category?: Category
 }
 
 export interface Budget {
   id: string
-  family_id: string
   category_id: string
   amount: number
   year: number
-  month: number           // 1-12
-  category?: Category     // join 결과
+  month: number
+  created_by: string
+  updated_by: string | null
+  category?: Category
 }
 
 export interface MonthYear {
@@ -44,7 +72,7 @@ export interface MonthlySummary {
 }
 
 export interface BudgetWithUsage extends Budget {
-  used: number            // 해당 월 실제 지출액
+  used: number
   category: Category
 }
 
@@ -70,16 +98,11 @@ export const FIXED_ITEM_GROUPS: FixedItemGroup[] = [
 export type PaymentMethod = '자동이체' | '신용카드' | '체크카드' | '현금' | '기타'
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
-  '자동이체',
-  '신용카드',
-  '체크카드',
-  '현금',
-  '기타',
+  '자동이체', '신용카드', '체크카드', '현금', '기타',
 ]
 
 export interface FixedItem {
   id: string
-  family_id: string
   name: string
   amount: number
   group_name: FixedItemGroup
@@ -87,13 +110,8 @@ export interface FixedItem {
   payment_method: PaymentMethod | null
   memo: string | null
   is_active: boolean
-  created_at: string
-}
-
-export interface Family {
-  id: string
-  monthly_income: number
-  onboarding_completed: boolean
+  created_by: string
+  updated_by: string | null
   created_at: string
 }
 
@@ -102,11 +120,12 @@ export const ASSET_CATEGORIES: AssetCategory[] = ['금융', '투자', '보증금
 
 export interface Asset {
   id: string
-  family_id: string
   name: string
   category: AssetCategory
   initial_balance: number
   linked_fixed_item_id: string | null
+  created_by: string
+  updated_by: string | null
   created_at: string
   current_balance?: number
   linked_fixed_item_name?: string | null
@@ -122,5 +141,6 @@ export interface AssetLedger {
   source_id: string | null
   recorded_month: string | null
   memo: string | null
+  created_by: string
   created_at: string
 }
