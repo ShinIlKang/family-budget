@@ -30,7 +30,7 @@ export default function BottomNav({ familyId }: Props) {
           <Link
             key={tab.href}
             href={href}
-            className={`flex-1 flex flex-col items-center py-2 text-xs gap-1 ${
+            className={`flex-1 flex flex-col items-center py-2 text-[10px] gap-1 ${
               isActive ? 'text-indigo-600' : 'text-gray-500'
             }`}
           >

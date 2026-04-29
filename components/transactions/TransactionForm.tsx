@@ -92,7 +92,7 @@ export default function TransactionForm({ categories, assets, initial, onSubmit,
         maxLength={100}
       />
 
-      {assets.length > 0 && (
+      {assets.length > 0 && !initial && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
             <p className="text-sm font-medium text-gray-700">자산에 추가납입</p>

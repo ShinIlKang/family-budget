@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useMonthStore } from '@/lib/monthStore'
-import { getMonthlySummary, getTransactions, getBudgetsWithUsage, getCategories, seedDefaultCategories, getFixedItemsSummary, getAssetsSummary, getOrCreateFamily } from '@/lib/queries'
+import { getMonthlySummary, getTransactions, getBudgetsWithUsage, getCategories, seedDefaultCategories, getFixedItemsSummary, getAssetsSummary } from '@/lib/queries'
 import type { BudgetWithUsage, Transaction, AssetCategory } from '@/types'
 import SummaryCards from '@/components/dashboard/SummaryCards'
 import BudgetOverview from '@/components/dashboard/BudgetOverview'
