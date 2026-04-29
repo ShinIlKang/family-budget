@@ -1,21 +1,27 @@
 'use client'
 import { useState } from 'react'
-import type { Transaction, Category } from '@/types'
+import type { Transaction, Category, Asset } from '@/types'
 
 interface Props {
   categories: Category[]
+  assets: Asset[]
   initial?: Transaction | null
-  onSubmit: (data: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>) => Promise<void>
+  onSubmit: (
+    data: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>,
+    assetId?: string
+  ) => Promise<void>
   onCancel: () => void
 }
 
-export default function TransactionForm({ categories, initial, onSubmit, onCancel }: Props) {
+export default function TransactionForm({ categories, assets, initial, onSubmit, onCancel }: Props) {
   const today = new Date().toISOString().split('T')[0]
   const [type, setType] = useState<'income' | 'expense'>(initial?.type ?? 'expense')
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
   const [memo, setMemo] = useState(initial?.memo ?? '')
   const [date, setDate] = useState(initial?.date ?? today)
+  const [linkAsset, setLinkAsset] = useState(false)
+  const [assetId, setAssetId] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,14 +29,14 @@ export default function TransactionForm({ categories, initial, onSubmit, onCance
     const parsed = parseInt(amount.replace(/,/g, ''))
     if (isNaN(parsed) || parsed <= 0) return
     setLoading(true)
-    await onSubmit({
-      type,
-      amount: parsed,
-      category_id: categoryId || null,
-      memo: memo || null,
-      date,
-    })
-    setLoading(false)
+    try {
+      await onSubmit(
+        { type, amount: parsed, category_id: categoryId || null, memo: memo || null, date },
+        linkAsset && assetId ? assetId : undefined
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -85,6 +91,35 @@ export default function TransactionForm({ categories, initial, onSubmit, onCance
         className="border border-gray-300 rounded-lg px-3 py-2"
         maxLength={100}
       />
+
+      {assets.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <p className="text-sm font-medium text-gray-700">자산에 추가납입</p>
+            <button
+              type="button"
+              onClick={() => setLinkAsset(v => !v)}
+              className={`relative w-10 h-6 rounded-full transition-colors ${linkAsset ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${linkAsset ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
+          </div>
+          {linkAsset && (
+            <select
+              value={assetId}
+              onChange={e => setAssetId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2"
+              required
+            >
+              <option value="">자산 항목 선택</option>
+              {assets.map(a => (
+                <option key={a.id} value={a.id}>{a.name} ({a.category})</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-2">
         <button
           type="button"

@@ -2,8 +2,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useMonthStore } from '@/lib/monthStore'
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategories, seedDefaultCategories } from '@/lib/queries'
-import type { Transaction, Category } from '@/types'
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategories, seedDefaultCategories, getAssetsWithBalance, addManualLedgerEntry } from '@/lib/queries'
+import type { Transaction, Category, Asset } from '@/types'
 import TransactionList from '@/components/transactions/TransactionList'
 import TransactionForm from '@/components/transactions/TransactionForm'
 import Modal from '@/components/ui/Modal'
@@ -14,13 +14,15 @@ export default function TransactionsPage() {
   const { current } = useMonthStore()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [assets, setAssets] = useState<Asset[]>([])
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const load = useCallback(async () => {
-    const [txns, cats] = await Promise.all([
+    const [txns, cats, a] = await Promise.all([
       getTransactions(familyId, current),
       getCategories(familyId),
+      getAssetsWithBalance(familyId),
     ])
     if (cats.length === 0) {
       await seedDefaultCategories(familyId)
@@ -29,15 +31,23 @@ export default function TransactionsPage() {
       setCategories(cats)
     }
     setTransactions(txns)
+    setAssets(a)
   }, [familyId, current])
 
   useEffect(() => { load() }, [load])
 
-  async function handleSubmit(data: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>) {
+  async function handleSubmit(
+    data: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>,
+    assetId?: string
+  ) {
+    let txn: Transaction
     if (editing) {
-      await updateTransaction(editing.id, data)
+      txn = await updateTransaction(editing.id, data)
     } else {
-      await createTransaction(familyId, data)
+      txn = await createTransaction(familyId, data)
+    }
+    if (assetId) {
+      await addManualLedgerEntry(assetId, data.amount, txn.id, data.memo ?? undefined)
     }
     setIsFormOpen(false)
     setEditing(null)
@@ -68,6 +78,7 @@ export default function TransactionsPage() {
       >
         <TransactionForm
           categories={categories}
+          assets={assets}
           initial={editing}
           onSubmit={handleSubmit}
           onCancel={() => { setIsFormOpen(false); setEditing(null) }}
