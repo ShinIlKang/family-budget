@@ -400,23 +400,24 @@ export async function autoAccumulateAssets(familyId: string): Promise<void> {
       if (month > 12) { month = 1; year++ }
     }
 
-    for (const recordedMonth of months) {
-      const { error: uErr } = await supabase.from('asset_ledger').upsert(
-        {
-          asset_id: asset.id,
-          amount: fi.amount,
-          entry_type: 'auto',
-          source_type: 'fixed_item',
-          source_id: asset.linked_fixed_item_id,
-          recorded_month: recordedMonth,
-        },
-        { onConflict: 'asset_id,recorded_month', ignoreDuplicates: true }
-      )
-      if (uErr) throw uErr
-    }
+    if (months.length === 0) continue
+
+    const rows = months.map(recordedMonth => ({
+      asset_id: asset.id,
+      amount: fi.amount,
+      entry_type: 'auto' as const,
+      source_type: 'fixed_item' as const,
+      source_id: asset.linked_fixed_item_id,
+      recorded_month: recordedMonth,
+    }))
+    const { error: uErr } = await supabase
+      .from('asset_ledger')
+      .upsert(rows, { onConflict: 'asset_id,recorded_month', ignoreDuplicates: true })
+    if (uErr) throw uErr
   }
 }
 
+// recorded_month를 삽입하지 않아 NULL로 저장 — PostgreSQL UNIQUE는 NULL을 별개 값으로 취급하므로 수동 항목은 월별 중복 제한 없이 복수 등록 가능
 export async function addManualLedgerEntry(
   assetId: string,
   amount: number,
