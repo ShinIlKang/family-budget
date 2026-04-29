@@ -1,11 +1,6 @@
-// app/[familyId]/onboarding/page.tsx
-'use client'
-import { useParams } from 'next/navigation'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 
 export default function OnboardingPage() {
-  const { familyId } = useParams<{ familyId: string }>()
-
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <div className="bg-indigo-600 text-white px-4 py-5">
@@ -14,7 +9,7 @@ export default function OnboardingPage() {
         <p className="text-sm text-indigo-200 mt-1">기본 정보를 입력하면 앱을 사용할 수 있어요</p>
       </div>
       <div className="flex-1 flex flex-col">
-        <OnboardingWizard familyId={familyId} />
+        <OnboardingWizard />
       </div>
     </div>
   )

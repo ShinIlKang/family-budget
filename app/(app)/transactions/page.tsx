@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useMonthStore } from '@/lib/monthStore'
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategories, seedDefaultCategories, getAssetsWithBalance, addManualLedgerEntry } from '@/lib/queries'
 import type { Transaction, Category, Asset } from '@/types'
@@ -10,7 +10,7 @@ import Modal from '@/components/ui/Modal'
 import FAB from '@/components/ui/FAB'
 
 export default function TransactionsPage() {
-  const { familyId } = useParams<{ familyId: string }>()
+  const { data: session } = useSession()
   const { current } = useMonthStore()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -20,19 +20,19 @@ export default function TransactionsPage() {
 
   const load = useCallback(async () => {
     const [txns, cats, a] = await Promise.all([
-      getTransactions(familyId, current),
-      getCategories(familyId),
-      getAssetsWithBalance(familyId),
+      getTransactions(current),
+      getCategories(),
+      getAssetsWithBalance(),
     ])
-    if (cats.length === 0) {
-      await seedDefaultCategories(familyId)
-      setCategories(await getCategories(familyId))
+    if (cats.length === 0 && session?.user.id) {
+      await seedDefaultCategories(session.user.id)
+      setCategories(await getCategories())
     } else {
       setCategories(cats)
     }
     setTransactions(txns)
     setAssets(a)
-  }, [familyId, current])
+  }, [current, session])
 
   useEffect(() => { load() }, [load])
 
@@ -40,14 +40,15 @@ export default function TransactionsPage() {
     data: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>,
     assetId?: string
   ) {
+    if (!session?.user.id) return
     let txn: Transaction
     if (editing) {
-      txn = await updateTransaction(editing.id, data)
+      txn = await updateTransaction(editing.id, data, session.user.id)
     } else {
-      txn = await createTransaction(familyId, data)
+      txn = await createTransaction(data, session.user.id)
     }
     if (assetId) {
-      await addManualLedgerEntry(assetId, data.amount, txn.id, data.memo ?? undefined)
+      await addManualLedgerEntry(assetId, data.amount, txn.id, session.user.id, data.memo ?? undefined)
     }
     setIsFormOpen(false)
     setEditing(null)
@@ -60,29 +61,12 @@ export default function TransactionsPage() {
     await load()
   }
 
-  function openAdd() { setEditing(null); setIsFormOpen(true) }
-  function openEdit(t: Transaction) { setEditing(t); setIsFormOpen(true) }
-
   return (
     <>
-      <TransactionList
-        transactions={transactions}
-        onEdit={openEdit}
-        onDelete={handleDelete}
-      />
-      <FAB onClick={openAdd} />
-      <Modal
-        isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setEditing(null) }}
-        title={editing ? '내역 수정' : '내역 추가'}
-      >
-        <TransactionForm
-          categories={categories}
-          assets={assets}
-          initial={editing}
-          onSubmit={handleSubmit}
-          onCancel={() => { setIsFormOpen(false); setEditing(null) }}
-        />
+      <TransactionList transactions={transactions} onEdit={t => { setEditing(t); setIsFormOpen(true) }} onDelete={handleDelete} />
+      <FAB onClick={() => { setEditing(null); setIsFormOpen(true) }} />
+      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setEditing(null) }} title={editing ? '내역 수정' : '내역 추가'}>
+        <TransactionForm categories={categories} assets={assets} initial={editing} onSubmit={handleSubmit} onCancel={() => { setIsFormOpen(false); setEditing(null) }} />
       </Modal>
     </>
   )
