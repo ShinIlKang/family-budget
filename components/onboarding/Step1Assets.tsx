@@ -13,7 +13,7 @@ interface Props {
 interface AssetInput {
   name: string
   category: AssetCategory
-  initial_balance: string
+  initial_balance: number
 }
 
 export default function Step1Assets({ familyId, onNext }: Props) {
@@ -24,11 +24,12 @@ export default function Step1Assets({ familyId, onNext }: Props) {
   const [assetBalance, setAssetBalance] = useState('')
   const [addedAssets, setAddedAssets] = useState<AssetInput[]>([])
   const [loading, setLoading] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   function addAsset() {
     const bal = parseInt(assetBalance.replace(/,/g, ''))
     if (!assetName.trim() || isNaN(bal) || bal < 0) return
-    setAddedAssets(prev => [...prev, { name: assetName.trim(), category: assetCategory, initial_balance: assetBalance }])
+    setAddedAssets(prev => [...prev, { name: assetName.trim(), category: assetCategory, initial_balance: bal }])
     setAssetName('')
     setAssetBalance('')
     setAssetCategory('금융')
@@ -39,17 +40,20 @@ export default function Step1Assets({ familyId, onNext }: Props) {
     const parsedIncome = parseInt(income.replace(/,/g, ''))
     if (isNaN(parsedIncome) || parsedIncome < 0) return
     setLoading(true)
+    setSaveError(null)
     try {
       await updateFamily(familyId, { monthly_income: parsedIncome })
-      for (const a of addedAssets) {
-        await createAsset(familyId, {
+      await Promise.all(
+        addedAssets.map(a => createAsset(familyId, {
           name: a.name,
           category: a.category,
-          initial_balance: parseInt(a.initial_balance.replace(/,/g, '')),
+          initial_balance: a.initial_balance,
           linked_fixed_item_id: null,
-        })
-      }
+        }))
+      )
       onNext()
+    } catch {
+      setSaveError('저장 중 오류가 발생했습니다. 다시 시도해 주세요.')
     } finally {
       setLoading(false)
     }
@@ -136,7 +140,7 @@ export default function Step1Assets({ familyId, onNext }: Props) {
                   <p className="text-xs text-gray-400">{a.category}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-emerald-600">{formatAmount(parseInt(a.initial_balance) || 0)}원</p>
+                  <p className="text-sm font-semibold text-emerald-600">{formatAmount(a.initial_balance)}원</p>
                   <button
                     type="button"
                     onClick={() => setAddedAssets(prev => prev.filter((_, j) => j !== i))}
@@ -151,6 +155,9 @@ export default function Step1Assets({ familyId, onNext }: Props) {
         )}
       </div>
 
+      {saveError && (
+        <p className="text-red-500 text-sm text-center">{saveError}</p>
+      )}
       <button
         type="button"
         onClick={handleNext}
