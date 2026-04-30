@@ -55,7 +55,7 @@ CREATE TABLE categories (
 CREATE TABLE transactions (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type        TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-  amount      INTEGER NOT NULL CHECK (amount > 0),
+  amount      BIGINT NOT NULL CHECK (amount > 0),
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   memo        TEXT,
   date        DATE NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE transactions (
 CREATE TABLE budgets (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-  amount      INTEGER NOT NULL CHECK (amount > 0),
+  amount      BIGINT NOT NULL CHECK (amount > 0),
   year        INTEGER NOT NULL,
   month       INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
   created_by  UUID NOT NULL REFERENCES members(id),
@@ -80,7 +80,7 @@ CREATE TABLE budgets (
 CREATE TABLE fixed_items (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name           TEXT NOT NULL,
-  amount         INTEGER NOT NULL CHECK (amount > 0),
+  amount         BIGINT NOT NULL CHECK (amount > 0),
   group_name     TEXT NOT NULL,
   billing_day    INTEGER CHECK (billing_day BETWEEN 1 AND 31),
   payment_method TEXT,
@@ -96,7 +96,7 @@ CREATE TABLE assets (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                 TEXT NOT NULL,
   category             TEXT NOT NULL CHECK (category IN ('금융', '투자', '보증금')),
-  initial_balance      INTEGER NOT NULL DEFAULT 0 CHECK (initial_balance >= 0),
+  initial_balance      BIGINT NOT NULL DEFAULT 0 CHECK (initial_balance >= 0),
   linked_fixed_item_id UUID REFERENCES fixed_items(id) ON DELETE SET NULL,
   created_by           UUID NOT NULL REFERENCES members(id),
   updated_by           UUID REFERENCES members(id),
@@ -107,7 +107,7 @@ CREATE TABLE assets (
 CREATE TABLE asset_ledger (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id       UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
-  amount         INTEGER NOT NULL CHECK (amount != 0),
+  amount         BIGINT NOT NULL CHECK (amount != 0),
   entry_type     TEXT NOT NULL CHECK (entry_type IN ('auto', 'manual')),
   source_type    TEXT CHECK (source_type IN ('fixed_item', 'transaction')),
   source_id      UUID,
