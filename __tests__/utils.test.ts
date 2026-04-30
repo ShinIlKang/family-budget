@@ -15,12 +15,13 @@ describe('formatDate', () => {
   })
 })
 
+// 급여 기준 월: N월 24일 ~ (N+1)월 23일
 describe('getMonthRange', () => {
-  it('해당 월의 시작일과 종료일을 반환한다', () => {
-    expect(getMonthRange(2026, 4)).toEqual({ start: '2026-04-01', end: '2026-04-30' })
+  it('급여 기준 월 범위를 반환한다', () => {
+    expect(getMonthRange(2026, 4)).toEqual({ start: '2026-04-24', end: '2026-05-23' })
   })
-  it('2월 윤년을 처리한다', () => {
-    expect(getMonthRange(2024, 2)).toEqual({ start: '2024-02-01', end: '2024-02-29' })
+  it('12월은 다음 해 1월 23일까지', () => {
+    expect(getMonthRange(2025, 12)).toEqual({ start: '2025-12-24', end: '2026-01-23' })
   })
 })
 

@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import type { FixedItem, FixedItemGroup } from '@/types'
-import { FIXED_ITEM_GROUPS } from '@/types'
+import type { FixedItem, FixedItemGroup, PaymentMethod } from '@/types'
+import { FIXED_ITEM_GROUPS, PAYMENT_METHODS } from '@/types'
 import { formatAmountInput } from '@/lib/utils'
 
 interface Props {
   initial: FixedItem | null
-  onSubmit: (data: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>) => Promise<void>
+  onSubmit: (data: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at' | 'year' | 'month'>) => Promise<void>
   onCancel: () => void
   onDelete: (() => Promise<void>) | undefined
 }
@@ -16,6 +16,7 @@ export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }:
   const [amount, setAmount] = useState(initial ? formatAmountInput(String(initial.amount)) : '')
   const [groupName, setGroupName] = useState<FixedItemGroup>(initial?.group_name ?? '구독/서비스')
   const [billingDay, setBillingDay] = useState(initial?.billing_day ? String(initial.billing_day) : '')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(initial?.payment_method ?? '')
   const [memo, setMemo] = useState(initial?.memo ?? '')
   const [isActive, setIsActive] = useState(initial?.is_active ?? true)
   const [loading, setLoading] = useState(false)
@@ -31,6 +32,7 @@ export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }:
         amount: parsed,
         group_name: groupName,
         billing_day: billingDay ? parseInt(billingDay) : null,
+        payment_method: paymentMethod || null,
         memo: memo.trim() || null,
         is_active: isActive,
       })
@@ -87,6 +89,16 @@ export default function FixedItemForm({ initial, onSubmit, onCancel, onDelete }:
         <option value="">납부일 선택 (선택)</option>
         {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
           <option key={d} value={d}>매월 {d}일</option>
+        ))}
+      </select>
+      <select
+        value={paymentMethod}
+        onChange={e => setPaymentMethod(e.target.value as PaymentMethod | '')}
+        className="border border-gray-300 rounded-lg px-3 py-2"
+      >
+        <option value="">납부방법 선택 (선택)</option>
+        {PAYMENT_METHODS.map(m => (
+          <option key={m} value={m}>{m}</option>
         ))}
       </select>
       <textarea

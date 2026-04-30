@@ -5,13 +5,17 @@ import type { Asset, FixedItem } from '@/types'
 const mockFixedItems: FixedItem[] = [
   {
     id: 'fi1',
-    family_id: 'fam1',
+    year: 2026,
+    month: 4,
     name: '적금',
     amount: 200000,
     group_name: '저축/투자',
     billing_day: 25,
+    payment_method: null,
     memo: null,
     is_active: true,
+    created_by: 'user1',
+    updated_by: null,
     created_at: '2026-01-01',
   },
 ]
@@ -48,11 +52,12 @@ describe('AssetForm', () => {
   it('initial이 있으면 수정 버튼을 표시한다', () => {
     const asset: Asset = {
       id: '1',
-      family_id: 'fam1',
       name: '국내주식',
       category: '투자',
       initial_balance: 5000000,
       linked_fixed_item_id: null,
+      created_by: 'user1',
+      updated_by: null,
       created_at: '2026-01-01',
     }
     render(

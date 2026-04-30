@@ -1,58 +1,77 @@
 import { supabase } from '@/lib/supabase'
-import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem, Family, Asset, AssetCategory } from '@/types'
+import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem, Asset, AssetCategory, Settings, Settlement } from '@/types'
+import { DEFAULT_BUDGET_CATEGORIES } from '@/types'
 import { getMonthRange } from '@/lib/utils'
+
+// ─── 설정 ────────────────────────────────────────────────────
+
+export async function getSettings(): Promise<Settings | null> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('*')
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function updateSettings(
+  updatedBy: string,
+  data: Partial<Pick<Settings, 'onboarding_completed'>>
+): Promise<void> {
+  const { error } = await supabase
+    .from('settings')
+    .update({ ...data, updated_by: updatedBy, updated_at: new Date().toISOString() })
+    .neq('id', '00000000-0000-0000-0000-000000000000') // 전체 행 업데이트
+  if (error) throw error
+}
 
 // ─── 카테고리 ───────────────────────────────────────────────
 
-export async function getCategories(familyId: string): Promise<Category[]> {
+export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
-    .eq('family_id', familyId)
-    .order('name')
+    .in('name', DEFAULT_BUDGET_CATEGORIES.map(category => category.name))
+    .order('created_at')
   if (error) throw error
-  return data
+
+  const categoriesByName = new Map<string, Category>()
+  for (const category of data ?? []) {
+    if (!categoriesByName.has(category.name)) {
+      categoriesByName.set(category.name, category)
+    }
+  }
+
+  return DEFAULT_BUDGET_CATEGORIES.map(category => categoriesByName.get(category.name)).filter(
+    (category): category is Category => Boolean(category)
+  )
 }
 
-export async function createCategory(
-  familyId: string,
-  input: Pick<Category, 'name' | 'color' | 'icon'>
-): Promise<Category> {
-  const { data, error } = await supabase
-    .from('categories')
-    .insert({ family_id: familyId, ...input })
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
+export async function seedDefaultCategories(createdBy: string): Promise<Category[]> {
+  const existing = await getCategories()
+  const existingNames = new Set(existing.map(category => category.name))
+  const missing = DEFAULT_BUDGET_CATEGORIES.filter(category => !existingNames.has(category.name))
 
-export async function seedDefaultCategories(familyId: string): Promise<void> {
-  const defaults = [
-    { name: '식비', color: '#ef4444', icon: '🍽️' },
-    { name: '교통', color: '#f97316', icon: '🚌' },
-    { name: '의료', color: '#ec4899', icon: '💊' },
-    { name: '교육', color: '#8b5cf6', icon: '📚' },
-    { name: '쇼핑', color: '#06b6d4', icon: '🛒' },
-    { name: '저축', color: '#10b981', icon: '💰' },
-    { name: '기타', color: '#6b7280', icon: '📌' },
-  ]
-  const rows = defaults.map(d => ({ family_id: familyId, is_default: true, ...d }))
-  const { error } = await supabase.from('categories').insert(rows)
-  if (error) throw error
+  if (missing.length > 0) {
+    const rows = missing.map(category => ({
+      ...category,
+      is_default: true,
+      created_by: createdBy,
+    }))
+    const { error } = await supabase.from('categories').insert(rows)
+    if (error) throw error
+  }
+
+  return getCategories()
 }
 
 // ─── 거래 내역 ──────────────────────────────────────────────
 
-export async function getTransactions(
-  familyId: string,
-  my: MonthYear
-): Promise<Transaction[]> {
+export async function getTransactions(my: MonthYear): Promise<Transaction[]> {
   const { start, end } = getMonthRange(my.year, my.month)
   const { data, error } = await supabase
     .from('transactions')
     .select('*, category:categories(*)')
-    .eq('family_id', familyId)
     .gte('date', start)
     .lte('date', end)
     .order('date', { ascending: false })
@@ -61,12 +80,12 @@ export async function getTransactions(
 }
 
 export async function createTransaction(
-  familyId: string,
-  input: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>
+  input: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>,
+  createdBy: string
 ): Promise<Transaction> {
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ family_id: familyId, ...input })
+    .insert({ ...input, created_by: createdBy })
     .select('*, category:categories(*)')
     .single()
   if (error) throw error
@@ -75,11 +94,12 @@ export async function createTransaction(
 
 export async function updateTransaction(
   id: string,
-  input: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>
+  input: Pick<Transaction, 'type' | 'amount' | 'category_id' | 'memo' | 'date'>,
+  updatedBy: string
 ): Promise<Transaction> {
   const { data, error } = await supabase
     .from('transactions')
-    .update(input)
+    .update({ ...input, updated_by: updatedBy })
     .eq('id', id)
     .select('*, category:categories(*)')
     .single()
@@ -94,23 +114,18 @@ export async function deleteTransaction(id: string): Promise<void> {
 
 // ─── 예산 ───────────────────────────────────────────────────
 
-export async function getBudgetsWithUsage(
-  familyId: string,
-  my: MonthYear
-): Promise<BudgetWithUsage[]> {
+export async function getBudgetsWithUsage(my: MonthYear): Promise<BudgetWithUsage[]> {
   const { start, end } = getMonthRange(my.year, my.month)
 
   const [{ data: budgets, error: bErr }, { data: txns, error: tErr }] = await Promise.all([
     supabase
       .from('budgets')
       .select('*, category:categories(*)')
-      .eq('family_id', familyId)
       .eq('year', my.year)
       .eq('month', my.month),
     supabase
       .from('transactions')
       .select('category_id, amount')
-      .eq('family_id', familyId)
       .eq('type', 'expense')
       .gte('date', start)
       .lte('date', end),
@@ -132,16 +147,16 @@ export async function getBudgetsWithUsage(
 }
 
 export async function upsertBudget(
-  familyId: string,
   categoryId: string,
   my: MonthYear,
-  amount: number
+  amount: number,
+  createdBy: string
 ): Promise<Budget> {
   const { data, error } = await supabase
     .from('budgets')
     .upsert(
-      { family_id: familyId, category_id: categoryId, year: my.year, month: my.month, amount },
-      { onConflict: 'family_id,category_id,year,month' }
+      { category_id: categoryId, year: my.year, month: my.month, amount, created_by: createdBy },
+      { onConflict: 'category_id,year,month' }
     )
     .select()
     .single()
@@ -151,15 +166,11 @@ export async function upsertBudget(
 
 // ─── 대시보드 요약 ───────────────────────────────────────────
 
-export async function getMonthlySummary(
-  familyId: string,
-  my: MonthYear
-): Promise<{ income: number; expense: number }> {
+export async function getMonthlySummary(my: MonthYear): Promise<{ income: number; expense: number }> {
   const { start, end } = getMonthRange(my.year, my.month)
   const { data, error } = await supabase
     .from('transactions')
     .select('type, amount')
-    .eq('family_id', familyId)
     .gte('date', start)
     .lte('date', end)
   if (error) throw error
@@ -177,26 +188,24 @@ export async function getMonthlySummary(
 // ─── 통계 ────────────────────────────────────────────────────
 
 export async function getMonthlyStats(
-  familyId: string,
   months: MonthYear[]
 ): Promise<Array<MonthYear & { income: number; expense: number }>> {
-  const results = await Promise.all(
+  return Promise.all(
     months.map(async my => {
-      const summary = await getMonthlySummary(familyId, my)
+      const summary = await getMonthlySummary(my)
       return { ...my, ...summary }
     })
   )
-  return results
 }
-
 
 // ─── 고정비 항목 ────────────────────────────────────────────
 
-export async function getFixedItems(familyId: string): Promise<FixedItem[]> {
+export async function getFixedItems(year: number, month: number): Promise<FixedItem[]> {
   const { data, error } = await supabase
     .from('fixed_items')
     .select('*')
-    .eq('family_id', familyId)
+    .eq('year', year)
+    .eq('month', month)
     .order('group_name')
     .order('name')
   if (error) throw error
@@ -204,12 +213,12 @@ export async function getFixedItems(familyId: string): Promise<FixedItem[]> {
 }
 
 export async function createFixedItem(
-  familyId: string,
-  input: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>
+  input: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at'>,
+  createdBy: string
 ): Promise<FixedItem> {
   const { data, error } = await supabase
     .from('fixed_items')
-    .insert({ family_id: familyId, ...input })
+    .insert({ ...input, created_by: createdBy })
     .select()
     .single()
   if (error) throw error
@@ -218,11 +227,12 @@ export async function createFixedItem(
 
 export async function updateFixedItem(
   id: string,
-  input: Omit<FixedItem, 'id' | 'family_id' | 'created_at'>
+  input: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at'>,
+  updatedBy: string
 ): Promise<FixedItem> {
   const { data, error } = await supabase
     .from('fixed_items')
-    .update(input)
+    .update({ ...input, updated_by: updatedBy })
     .eq('id', id)
     .select()
     .single()
@@ -235,14 +245,25 @@ export async function deleteFixedItem(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function getFixedItemsSummary(
-  familyId: string
-): Promise<{ total: number; activeCount: number }> {
+export async function getMonthlyFixedTotals(
+  months: MonthYear[]
+): Promise<Array<MonthYear & { total: number }>> {
+  return Promise.all(
+    months.map(async m => {
+      const items = await getFixedItems(m.year, m.month)
+      const total = items.filter(i => i.is_active).reduce((s, i) => s + i.amount, 0)
+      return { ...m, total }
+    })
+  )
+}
+
+export async function getFixedItemsSummary(year: number, month: number): Promise<{ total: number; activeCount: number }> {
   const { data, error } = await supabase
     .from('fixed_items')
     .select('amount')
-    .eq('family_id', familyId)
     .eq('is_active', true)
+    .eq('year', year)
+    .eq('month', month)
   if (error) throw error
   return {
     total: (data ?? []).reduce((s, i) => s + i.amount, 0),
@@ -250,41 +271,12 @@ export async function getFixedItemsSummary(
   }
 }
 
-// ─── 가족 설정 ───────────────────────────────────────────────
-
-export async function getOrCreateFamily(familyId: string): Promise<Family> {
-  const { data: existing, error: sErr } = await supabase
-    .from('families')
-    .select('*')
-    .eq('id', familyId)
-    .maybeSingle()
-  if (sErr) throw sErr
-  if (existing) return existing
-
-  const { data, error } = await supabase
-    .from('families')
-    .insert({ id: familyId })
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function updateFamily(
-  familyId: string,
-  data: Partial<Pick<Family, 'monthly_income' | 'onboarding_completed'>>
-): Promise<void> {
-  const { error } = await supabase.from('families').update(data).eq('id', familyId)
-  if (error) throw error
-}
-
 // ─── 자산 ────────────────────────────────────────────────────
 
-export async function getAssetsWithBalance(familyId: string): Promise<Asset[]> {
+export async function getAssetsWithBalance(): Promise<Asset[]> {
   const { data: assets, error: aErr } = await supabase
     .from('assets')
     .select('*, fixed_item:fixed_items!linked_fixed_item_id(name, billing_day)')
-    .eq('family_id', familyId)
     .order('category')
     .order('name')
   if (aErr) throw aErr
@@ -307,11 +299,12 @@ export async function getAssetsWithBalance(familyId: string): Promise<Asset[]> {
     const fi = a.fixed_item as { name: string; billing_day: number | null } | null
     return {
       id: a.id,
-      family_id: a.family_id,
       name: a.name,
       category: a.category as AssetCategory,
       initial_balance: a.initial_balance,
       linked_fixed_item_id: a.linked_fixed_item_id,
+      created_by: a.created_by,
+      updated_by: a.updated_by,
       created_at: a.created_at,
       current_balance: a.initial_balance + (sums.get(a.id) ?? 0),
       linked_fixed_item_name: fi?.name ?? null,
@@ -321,12 +314,12 @@ export async function getAssetsWithBalance(familyId: string): Promise<Asset[]> {
 }
 
 export async function createAsset(
-  familyId: string,
-  input: Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>
+  input: Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>,
+  createdBy: string
 ): Promise<Asset> {
   const { data, error } = await supabase
     .from('assets')
-    .insert({ family_id: familyId, ...input })
+    .insert({ ...input, created_by: createdBy })
     .select()
     .single()
   if (error) throw error
@@ -335,11 +328,12 @@ export async function createAsset(
 
 export async function updateAsset(
   id: string,
-  input: Partial<Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>>
+  input: Partial<Pick<Asset, 'name' | 'category' | 'initial_balance' | 'linked_fixed_item_id'>>,
+  updatedBy: string
 ): Promise<Asset> {
   const { data, error } = await supabase
     .from('assets')
-    .update(input)
+    .update({ ...input, updated_by: updatedBy })
     .eq('id', id)
     .select()
     .single()
@@ -352,10 +346,8 @@ export async function deleteAsset(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function getAssetsSummary(
-  familyId: string
-): Promise<{ total: number; byCategory: Record<AssetCategory, number> }> {
-  const assets = await getAssetsWithBalance(familyId)
+export async function getAssetsSummary(): Promise<{ total: number; byCategory: Record<AssetCategory, number> }> {
+  const assets = await getAssetsWithBalance()
   const byCategory: Record<AssetCategory, number> = { 금융: 0, 투자: 0, 보증금: 0 }
   let total = 0
   for (const a of assets) {
@@ -368,11 +360,10 @@ export async function getAssetsSummary(
 
 // ─── 자산 원장 ──────────────────────────────────────────────
 
-export async function autoAccumulateAssets(familyId: string): Promise<void> {
+export async function autoAccumulateAssets(createdBy: string): Promise<void> {
   const { data: assets, error: aErr } = await supabase
     .from('assets')
     .select('id, initial_balance, created_at, linked_fixed_item_id, fixed_item:fixed_items!linked_fixed_item_id(billing_day, amount)')
-    .eq('family_id', familyId)
     .not('linked_fixed_item_id', 'is', null)
   if (aErr) throw aErr
   if (!assets || assets.length === 0) return
@@ -409,6 +400,7 @@ export async function autoAccumulateAssets(familyId: string): Promise<void> {
       source_type: 'fixed_item' as const,
       source_id: asset.linked_fixed_item_id,
       recorded_month: recordedMonth,
+      created_by: createdBy,
     }))
     const { error: uErr } = await supabase
       .from('asset_ledger')
@@ -417,11 +409,11 @@ export async function autoAccumulateAssets(familyId: string): Promise<void> {
   }
 }
 
-// recorded_month를 삽입하지 않아 NULL로 저장 — PostgreSQL UNIQUE는 NULL을 별개 값으로 취급하므로 수동 항목은 월별 중복 제한 없이 복수 등록 가능
 export async function addManualLedgerEntry(
   assetId: string,
   amount: number,
   sourceId: string,
+  createdBy: string,
   memo?: string
 ): Promise<void> {
   const { error } = await supabase.from('asset_ledger').insert({
@@ -431,6 +423,71 @@ export async function addManualLedgerEntry(
     source_type: 'transaction',
     source_id: sourceId,
     memo: memo ?? null,
+    created_by: createdBy,
   })
   if (error) throw error
+}
+
+// ─── 정산 ────────────────────────────────────────────────────
+
+export async function getSettlementForMonth(my: MonthYear): Promise<Settlement | null> {
+  const { data, error } = await supabase
+    .from('settlements')
+    .select('*')
+    .eq('year', my.year)
+    .eq('month', my.month)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function getLastSettlement(): Promise<Settlement | null> {
+  const { data, error } = await supabase
+    .from('settlements')
+    .select('*')
+    .not('completed_at', 'is', null)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function completeSettlement(
+  my: MonthYear,
+  payload: Pick<Settlement, 'salary' | 'fixed_total' | 'investment_total' | 'event_budget' | 'medical_budget' | 'living_budget'>,
+  createdBy: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('settlements')
+    .upsert(
+      { year: my.year, month: my.month, ...payload, completed_at: new Date().toISOString(), created_by: createdBy },
+      { onConflict: 'year,month' }
+    )
+  if (error) throw error
+}
+
+// ─── 멤버 (프로필용) ─────────────────────────────────────────
+
+export async function getMembers(): Promise<Array<{ id: string; username: string; name: string; role: string; is_master: boolean; created_at: string }>> {
+  const { data, error } = await supabase
+    .from('members')
+    .select('id, username, name, role, is_master, created_at')
+    .order('created_at')
+  if (error) throw error
+  return data
+}
+
+export async function getMemberCreatedData(memberId: string) {
+  const [{ data: transactions }, { data: assets }, { data: fixedItems }] = await Promise.all([
+    supabase.from('transactions').select('id, type, amount, date, memo').eq('created_by', memberId).order('date', { ascending: false }).limit(20),
+    supabase.from('assets').select('id, name, category, initial_balance').eq('created_by', memberId),
+    supabase.from('fixed_items').select('id, name, amount, group_name').eq('created_by', memberId),
+  ])
+  return {
+    transactions: transactions ?? [],
+    assets: assets ?? [],
+    fixedItems: fixedItems ?? [],
+  }
 }

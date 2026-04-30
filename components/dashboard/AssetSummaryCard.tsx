@@ -4,17 +4,16 @@ import { formatAmount } from '@/lib/utils'
 import type { AssetCategory } from '@/types'
 
 interface Props {
-  familyId: string
   total: number
   byCategory: Record<AssetCategory, number>
 }
 
-export default function AssetSummaryCard({ familyId, total, byCategory }: Props) {
+export default function AssetSummaryCard({ total, byCategory }: Props) {
   const router = useRouter()
   return (
     <div
       className="mx-4 mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4 cursor-pointer active:bg-emerald-100"
-      onClick={() => router.push(`/${familyId}/assets`)}
+      onClick={() => router.push('/assets')}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">

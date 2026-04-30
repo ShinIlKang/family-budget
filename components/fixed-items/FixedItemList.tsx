@@ -10,42 +10,60 @@ interface Props {
   onEdit: (item: FixedItem) => void
 }
 
-const ALL_TAB = '전체' as const
-
 export default function FixedItemList({ items, onEdit }: Props) {
-  const [activeTab, setActiveTab] = useState<FixedItemGroup | typeof ALL_TAB>(ALL_TAB)
+  const [openGroups, setOpenGroups] = useState<Set<FixedItemGroup>>(
+    new Set(FIXED_ITEM_GROUPS)
+  )
 
-  const filtered = activeTab === ALL_TAB ? items : items.filter(i => i.group_name === activeTab)
-  // 탭 필터와 무관하게 전체 활성 항목 합계를 표시
   const activeTotal = items.filter(i => i.is_active).reduce((s, i) => s + i.amount, 0)
+
+  function toggleGroup(group: FixedItemGroup) {
+    setOpenGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+      return next
+    })
+  }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex overflow-x-auto border-b border-gray-200 bg-white">
-        {([ALL_TAB, ...FIXED_ITEM_GROUPS] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
-              activeTab === tab
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex-1 overflow-y-auto">
+        {FIXED_ITEM_GROUPS.map(group => {
+          const groupItems = items.filter(i => i.group_name === group)
+          if (groupItems.length === 0) return null
+
+          const groupTotal = groupItems.filter(i => i.is_active).reduce((s, i) => s + i.amount, 0)
+          const isOpen = openGroups.has(group)
+
+          return (
+            <div key={group}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100 active:bg-gray-100"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-700">{group}</span>
+                  <span className="text-xs text-gray-400">{groupItems.length}개</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-indigo-600">{formatAmount(groupTotal)}원</span>
+                  <span className="text-xs text-gray-400">{isOpen ? '▲' : '▼'}</span>
+                </div>
+              </button>
+              {isOpen && (
+                <div className="bg-white">
+                  {groupItems.map(item => (
+                    <FixedItemRow key={item.id} item={item} onEdit={onEdit} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-      <div className="flex-1 overflow-y-auto bg-white">
-        {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-12">항목이 없습니다</p>
-        ) : (
-          filtered.map(item => (
-            <FixedItemRow key={item.id} item={item} onEdit={onEdit} />
-          ))
-        )}
-      </div>
-      <div className="border-t border-gray-200 bg-white px-4 py-3 flex justify-between items-center flex-shrink-0">
+      <div className="border-t border-gray-200 bg-white px-4 pr-20 py-3 flex justify-between items-center flex-shrink-0">
         <span className="text-sm text-gray-500">활성 항목 합계</span>
         <span className="text-base font-bold text-indigo-600">{formatAmount(activeTotal)}원</span>
       </div>

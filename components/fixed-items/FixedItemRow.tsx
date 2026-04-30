@@ -14,8 +14,12 @@ export default function FixedItemRow({ item, onEdit }: Props) {
     >
       <div>
         <p className="text-sm font-medium text-gray-800">{item.name}</p>
-        {item.billing_day && (
-          <p className="text-xs text-gray-400">매월 {item.billing_day}일</p>
+        {(item.billing_day || item.payment_method) && (
+          <p className="text-xs text-gray-400">
+            {item.billing_day ? `매월 ${item.billing_day}일` : ''}
+            {item.billing_day && item.payment_method ? ' · ' : ''}
+            {item.payment_method ?? ''}
+          </p>
         )}
       </div>
       <p className="text-sm font-semibold text-gray-700">{formatAmount(item.amount)}원</p>

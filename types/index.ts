@@ -1,35 +1,77 @@
 export type TransactionType = 'income' | 'expense'
 
-export interface Category {
+export interface Member {
   id: string
-  family_id: string
+  username: string
   name: string
-  color: string   // hex, 예: '#ef4444'
-  icon: string    // emoji, 예: '🍽️'
-  is_default: boolean
+  phone: string | null
+  role: string
+  is_master: boolean
   created_at: string
 }
 
+export interface Settings {
+  id: string
+  onboarding_completed: boolean
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface InviteCode {
+  code: string
+  created_by: string
+  expires_at: string
+  used_at: string | null
+  created_at: string
+}
+
+export interface Category {
+  id: string
+  name: string
+  color: string
+  icon: string
+  is_default: boolean
+  created_by: string
+  updated_by: string | null
+  created_at: string
+}
+
+export type BudgetCategoryName = '생활비' | '의료' | '경조사비'
+
+export const DEFAULT_BUDGET_CATEGORIES: ReadonlyArray<{
+  name: BudgetCategoryName
+  color: string
+  icon: string
+}> = [
+  { name: '생활비', color: '#f97316', icon: '🧺' },
+  { name: '의료', color: '#ec4899', icon: '💊' },
+  { name: '경조사비', color: '#3b82f6', icon: '🎁' },
+]
+
+export const DEFAULT_BUDGET_CATEGORY_COUNT = DEFAULT_BUDGET_CATEGORIES.length
+
 export interface Transaction {
   id: string
-  family_id: string
   type: TransactionType
-  amount: number          // 원 단위 정수
+  amount: number
   category_id: string | null
   memo: string | null
-  date: string            // 'YYYY-MM-DD'
+  date: string
+  created_by: string
+  updated_by: string | null
   created_at: string
-  category?: Category     // join 결과
+  category?: Category
 }
 
 export interface Budget {
   id: string
-  family_id: string
   category_id: string
   amount: number
   year: number
-  month: number           // 1-12
-  category?: Category     // join 결과
+  month: number
+  created_by: string
+  updated_by: string | null
+  category?: Category
 }
 
 export interface MonthYear {
@@ -44,7 +86,7 @@ export interface MonthlySummary {
 }
 
 export interface BudgetWithUsage extends Budget {
-  used: number            // 해당 월 실제 지출액
+  used: number
   category: Category
 }
 
@@ -67,22 +109,25 @@ export const FIXED_ITEM_GROUPS: FixedItemGroup[] = [
   '저축/투자',
 ]
 
+export type PaymentMethod = '자동이체' | '신용카드' | '체크카드' | '현금' | '기타'
+
+export const PAYMENT_METHODS: PaymentMethod[] = [
+  '자동이체', '신용카드', '체크카드', '현금', '기타',
+]
+
 export interface FixedItem {
   id: string
-  family_id: string
+  year: number
+  month: number
   name: string
   amount: number
   group_name: FixedItemGroup
   billing_day: number | null
+  payment_method: PaymentMethod | null
   memo: string | null
   is_active: boolean
-  created_at: string
-}
-
-export interface Family {
-  id: string
-  monthly_income: number
-  onboarding_completed: boolean
+  created_by: string
+  updated_by: string | null
   created_at: string
 }
 
@@ -91,11 +136,12 @@ export const ASSET_CATEGORIES: AssetCategory[] = ['금융', '투자', '보증금
 
 export interface Asset {
   id: string
-  family_id: string
   name: string
   category: AssetCategory
   initial_balance: number
   linked_fixed_item_id: string | null
+  created_by: string
+  updated_by: string | null
   created_at: string
   current_balance?: number
   linked_fixed_item_name?: string | null
@@ -111,5 +157,21 @@ export interface AssetLedger {
   source_id: string | null
   recorded_month: string | null
   memo: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface Settlement {
+  id: string
+  year: number
+  month: number
+  salary: number
+  fixed_total: number
+  investment_total: number
+  event_budget: number
+  medical_budget: number
+  living_budget: number
+  completed_at: string | null
+  created_by: string
   created_at: string
 }

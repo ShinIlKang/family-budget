@@ -1,16 +1,17 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import type { FixedItem, Asset } from '@/types'
 import { getFixedItems, getAssetsWithBalance, updateAsset } from '@/lib/queries'
 import { formatAmount } from '@/lib/utils'
 
 interface Props {
-  familyId: string
   onNext: () => void
   onBack: () => void
 }
 
-export default function Step3LinkAssets({ familyId, onNext, onBack }: Props) {
+export default function Step3LinkAssets({ onNext, onBack }: Props) {
+  const { data: session } = useSession()
   const [fixedItems, setFixedItems] = useState<FixedItem[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   // assetId → fixedItemId mapping (빈 문자열 = 연결 안 함)
@@ -19,9 +20,10 @@ export default function Step3LinkAssets({ familyId, onNext, onBack }: Props) {
 
   const load = useCallback(async () => {
     try {
+      const now = new Date()
       const [fi, a] = await Promise.all([
-        getFixedItems(familyId),
-        getAssetsWithBalance(familyId),
+        getFixedItems(now.getFullYear(), now.getMonth() + 1),
+        getAssetsWithBalance(),
       ])
       setFixedItems(fi.filter(f => f.is_active))
       setAssets(a)
@@ -33,7 +35,7 @@ export default function Step3LinkAssets({ familyId, onNext, onBack }: Props) {
     } catch (e) {
       console.error('데이터 로드 실패:', e)
     }
-  }, [familyId])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -42,7 +44,7 @@ export default function Step3LinkAssets({ familyId, onNext, onBack }: Props) {
     try {
       await Promise.all(
         Object.entries(links).map(([assetId, fixedItemId]) =>
-          updateAsset(assetId, { linked_fixed_item_id: fixedItemId || null })
+          updateAsset(assetId, { linked_fixed_item_id: fixedItemId || null }, session?.user.id ?? '')
         )
       )
       onNext()

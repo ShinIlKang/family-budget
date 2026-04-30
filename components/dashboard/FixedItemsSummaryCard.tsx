@@ -3,17 +3,16 @@ import { useRouter } from 'next/navigation'
 import { formatAmount } from '@/lib/utils'
 
 interface Props {
-  familyId: string
   total: number
   activeCount: number
 }
 
-export default function FixedItemsSummaryCard({ familyId, total, activeCount }: Props) {
+export default function FixedItemsSummaryCard({ total, activeCount }: Props) {
   const router = useRouter()
   return (
     <div
       className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 cursor-pointer active:bg-amber-100"
-      onClick={() => router.push(`/${familyId}/fixed-items`)}
+      onClick={() => router.push('/fixed-items')}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

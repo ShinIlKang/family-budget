@@ -4,11 +4,12 @@ import type { Asset } from '@/types'
 
 const mockAsset: Asset = {
   id: '1',
-  family_id: 'fam1',
   name: '적금 A은행',
   category: '금융',
   initial_balance: 10000000,
   linked_fixed_item_id: 'fi1',
+  created_by: 'user1',
+  updated_by: null,
   created_at: '2026-01-01',
   current_balance: 12400000,
   linked_fixed_item_name: '적금',
