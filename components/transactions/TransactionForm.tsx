@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Transaction, Category, Asset } from '@/types'
 import { formatAmountInput } from '@/lib/utils'
 
@@ -25,10 +25,17 @@ export default function TransactionForm({ categories, assets, initial, onSubmit,
   const [assetId, setAssetId] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (type === 'income') {
+      setCategoryId('')
+    }
+  }, [type])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const parsed = parseInt(amount.replace(/,/g, ''))
     if (isNaN(parsed) || parsed <= 0) return
+    if (type === 'expense' && !categoryId) return
     setLoading(true)
     try {
       await onSubmit(
@@ -74,16 +81,19 @@ export default function TransactionForm({ categories, assets, initial, onSubmit,
         className="border border-gray-300 rounded-lg px-3 py-2"
         required
       />
-      <select
-        value={categoryId}
-        onChange={e => setCategoryId(e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-2"
-      >
-        <option value="">카테고리 선택</option>
-        {categories.map(c => (
-          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-        ))}
-      </select>
+      {type === 'expense' && (
+        <select
+          value={categoryId}
+          onChange={e => setCategoryId(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2"
+          required
+        >
+          <option value="">예산 카테고리 선택</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+          ))}
+        </select>
+      )}
       <input
         type="text"
         placeholder="메모 (선택)"

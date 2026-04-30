@@ -36,6 +36,20 @@ export interface Category {
   created_at: string
 }
 
+export type BudgetCategoryName = '생활비' | '의료' | '경조사비'
+
+export const DEFAULT_BUDGET_CATEGORIES: ReadonlyArray<{
+  name: BudgetCategoryName
+  color: string
+  icon: string
+}> = [
+  { name: '생활비', color: '#f97316', icon: '🧺' },
+  { name: '의료', color: '#ec4899', icon: '💊' },
+  { name: '경조사비', color: '#3b82f6', icon: '🎁' },
+]
+
+export const DEFAULT_BUDGET_CATEGORY_COUNT = DEFAULT_BUDGET_CATEGORIES.length
+
 export interface Transaction {
   id: string
   type: TransactionType
@@ -103,6 +117,8 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 
 export interface FixedItem {
   id: string
+  year: number
+  month: number
   name: string
   amount: number
   group_name: FixedItemGroup
@@ -141,6 +157,21 @@ export interface AssetLedger {
   source_id: string | null
   recorded_month: string | null
   memo: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface Settlement {
+  id: string
+  year: number
+  month: number
+  salary: number
+  fixed_total: number
+  investment_total: number
+  event_budget: number
+  medical_budget: number
+  living_budget: number
+  completed_at: string | null
   created_by: string
   created_at: string
 }

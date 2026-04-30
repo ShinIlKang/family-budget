@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useMonthStore } from '@/lib/monthStore'
 import { getBudgetsWithUsage, upsertBudget, getCategories, seedDefaultCategories } from '@/lib/queries'
+import { DEFAULT_BUDGET_CATEGORY_COUNT } from '@/types'
 import type { BudgetWithUsage, Category } from '@/types'
 import BudgetCard from '@/components/budgets/BudgetCard'
 import BudgetForm from '@/components/budgets/BudgetForm'
@@ -17,9 +18,8 @@ export default function BudgetsPage() {
 
   const load = useCallback(async () => {
     let cats = await getCategories()
-    if (cats.length === 0 && session?.user.id) {
-      await seedDefaultCategories(session.user.id)
-      cats = await getCategories()
+    if (cats.length < DEFAULT_BUDGET_CATEGORY_COUNT && session?.user.id) {
+      cats = await seedDefaultCategories(session.user.id)
     }
     setCategories(cats)
     setBudgets(await getBudgetsWithUsage(current))

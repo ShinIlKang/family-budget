@@ -4,13 +4,23 @@ import type { BudgetWithUsage } from '@/types'
 
 const mockBudget: BudgetWithUsage = {
   id: '1',
-  family_id: 'fam1',
   category_id: 'cat1',
   amount: 300000,
   year: 2026,
   month: 4,
+  created_by: 'user1',
+  updated_by: null,
   used: 150000,
-  category: { id: 'cat1', family_id: 'fam1', name: '식비', color: '#ef4444', icon: '🍽️', is_default: true, created_at: '2026-01-01' },
+  category: {
+    id: 'cat1',
+    name: '식비',
+    color: '#ef4444',
+    icon: '🍽️',
+    is_default: true,
+    created_by: 'user1',
+    updated_by: null,
+    created_at: '2026-01-01',
+  },
 }
 
 describe('BudgetCard', () => {

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { getSettings } from '@/lib/queries'
+import { getSettings, getSettlementForMonth } from '@/lib/queries'
+import { getSettlementMonth } from '@/lib/utils'
 import BottomNav from '@/components/layout/BottomNav'
 import MonthSelector from '@/components/layout/MonthSelector'
 
@@ -14,10 +15,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect(session.user.isMaster ? '/onboarding' : '/pending')
   }
 
+  const currentMonth = getSettlementMonth()
+  const settlement = await getSettlementForMonth(currentMonth)
+  if (!settlement?.completed_at) {
+    redirect('/settlement')
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50">
       <MonthSelector />
-      <main className="flex-1 overflow-y-auto pb-16">
+      <main className="flex-1 min-h-0 overflow-y-auto pb-16">
         {children}
       </main>
       <BottomNav />

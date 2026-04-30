@@ -19,7 +19,8 @@ export default function Step2FixedItems({ onNext, onBack }: Props) {
 
   const load = useCallback(async () => {
     try {
-      setItems(await getFixedItems())
+      const now = new Date()
+      setItems(await getFixedItems(now.getFullYear(), now.getMonth() + 1))
     } catch (e) {
       console.error('고정비 로드 실패:', e)
     }
@@ -27,9 +28,10 @@ export default function Step2FixedItems({ onNext, onBack }: Props) {
 
   useEffect(() => { load() }, [load])
 
-  async function handleSubmit(data: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at'>) {
+  async function handleSubmit(data: Omit<FixedItem, 'id' | 'created_by' | 'updated_by' | 'created_at' | 'year' | 'month'>) {
     try {
-      await createFixedItem(data, session?.user.id ?? '')
+      const now = new Date()
+      await createFixedItem({ ...data, year: now.getFullYear(), month: now.getMonth() + 1 }, session?.user.id ?? '')
       setIsFormOpen(false)
       await load()
     } catch (e) {

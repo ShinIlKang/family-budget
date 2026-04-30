@@ -4,7 +4,8 @@ import type { FixedItem } from '@/types'
 
 const mockItem: FixedItem = {
   id: '1',
-  family_id: 'fam1',
+  year: 2026,
+  month: 4,
   name: '유튜브 구독료',
   amount: 14900,
   group_name: '구독/서비스',
@@ -12,6 +13,8 @@ const mockItem: FixedItem = {
   payment_method: null,
   memo: null,
   is_active: true,
+  created_by: 'user1',
+  updated_by: null,
   created_at: '2026-01-01',
 }
 

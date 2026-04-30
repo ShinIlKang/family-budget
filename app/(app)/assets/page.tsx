@@ -19,7 +19,8 @@ export default function AssetsPage() {
   const load = useCallback(async () => {
     if (!session?.user.id) return
     await autoAccumulateAssets(session.user.id)
-    const [a, f] = await Promise.all([getAssetsWithBalance(), getFixedItems()])
+    const now = new Date()
+    const [a, f] = await Promise.all([getAssetsWithBalance(), getFixedItems(now.getFullYear(), now.getMonth() + 1)])
     setAssets(a)
     setFixedItems(f)
   }, [session])

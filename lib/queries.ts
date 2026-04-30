@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem, Asset, AssetCategory, Settings } from '@/types'
+import type { Transaction, Category, Budget, MonthYear, BudgetWithUsage, FixedItem, Asset, AssetCategory, Settings, Settlement } from '@/types'
+import { DEFAULT_BUDGET_CATEGORIES } from '@/types'
 import { getMonthRange } from '@/lib/utils'
 
 // ─── 설정 ────────────────────────────────────────────────────
@@ -30,24 +31,38 @@ export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
-    .order('name')
+    .in('name', DEFAULT_BUDGET_CATEGORIES.map(category => category.name))
+    .order('created_at')
   if (error) throw error
-  return data
+
+  const categoriesByName = new Map<string, Category>()
+  for (const category of data ?? []) {
+    if (!categoriesByName.has(category.name)) {
+      categoriesByName.set(category.name, category)
+    }
+  }
+
+  return DEFAULT_BUDGET_CATEGORIES.map(category => categoriesByName.get(category.name)).filter(
+    (category): category is Category => Boolean(category)
+  )
 }
 
-export async function seedDefaultCategories(createdBy: string): Promise<void> {
-  const defaults = [
-    { name: '식비', color: '#ef4444', icon: '🍽️' },
-    { name: '교통', color: '#f97316', icon: '🚌' },
-    { name: '의료', color: '#ec4899', icon: '💊' },
-    { name: '교육', color: '#8b5cf6', icon: '📚' },
-    { name: '쇼핑', color: '#06b6d4', icon: '🛒' },
-    { name: '저축', color: '#10b981', icon: '💰' },
-    { name: '기타', color: '#6b7280', icon: '📌' },
-  ]
-  const rows = defaults.map(d => ({ is_default: true, created_by: createdBy, ...d }))
-  const { error } = await supabase.from('categories').insert(rows)
-  if (error) throw error
+export async function seedDefaultCategories(createdBy: string): Promise<Category[]> {
+  const existing = await getCategories()
+  const existingNames = new Set(existing.map(category => category.name))
+  const missing = DEFAULT_BUDGET_CATEGORIES.filter(category => !existingNames.has(category.name))
+
+  if (missing.length > 0) {
+    const rows = missing.map(category => ({
+      ...category,
+      is_default: true,
+      created_by: createdBy,
+    }))
+    const { error } = await supabase.from('categories').insert(rows)
+    if (error) throw error
+  }
+
+  return getCategories()
 }
 
 // ─── 거래 내역 ──────────────────────────────────────────────
@@ -185,10 +200,12 @@ export async function getMonthlyStats(
 
 // ─── 고정비 항목 ────────────────────────────────────────────
 
-export async function getFixedItems(): Promise<FixedItem[]> {
+export async function getFixedItems(year: number, month: number): Promise<FixedItem[]> {
   const { data, error } = await supabase
     .from('fixed_items')
     .select('*')
+    .eq('year', year)
+    .eq('month', month)
     .order('group_name')
     .order('name')
   if (error) throw error
@@ -228,11 +245,25 @@ export async function deleteFixedItem(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function getFixedItemsSummary(): Promise<{ total: number; activeCount: number }> {
+export async function getMonthlyFixedTotals(
+  months: MonthYear[]
+): Promise<Array<MonthYear & { total: number }>> {
+  return Promise.all(
+    months.map(async m => {
+      const items = await getFixedItems(m.year, m.month)
+      const total = items.filter(i => i.is_active).reduce((s, i) => s + i.amount, 0)
+      return { ...m, total }
+    })
+  )
+}
+
+export async function getFixedItemsSummary(year: number, month: number): Promise<{ total: number; activeCount: number }> {
   const { data, error } = await supabase
     .from('fixed_items')
     .select('amount')
     .eq('is_active', true)
+    .eq('year', year)
+    .eq('month', month)
   if (error) throw error
   return {
     total: (data ?? []).reduce((s, i) => s + i.amount, 0),
@@ -394,6 +425,46 @@ export async function addManualLedgerEntry(
     memo: memo ?? null,
     created_by: createdBy,
   })
+  if (error) throw error
+}
+
+// ─── 정산 ────────────────────────────────────────────────────
+
+export async function getSettlementForMonth(my: MonthYear): Promise<Settlement | null> {
+  const { data, error } = await supabase
+    .from('settlements')
+    .select('*')
+    .eq('year', my.year)
+    .eq('month', my.month)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function getLastSettlement(): Promise<Settlement | null> {
+  const { data, error } = await supabase
+    .from('settlements')
+    .select('*')
+    .not('completed_at', 'is', null)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function completeSettlement(
+  my: MonthYear,
+  payload: Pick<Settlement, 'salary' | 'fixed_total' | 'investment_total' | 'event_budget' | 'medical_budget' | 'living_budget'>,
+  createdBy: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('settlements')
+    .upsert(
+      { year: my.year, month: my.month, ...payload, completed_at: new Date().toISOString(), created_by: createdBy },
+      { onConflict: 'year,month' }
+    )
   if (error) throw error
 }
 

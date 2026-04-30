@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useMonthStore } from '@/lib/monthStore'
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategories, seedDefaultCategories, getAssetsWithBalance, addManualLedgerEntry } from '@/lib/queries'
+import { DEFAULT_BUDGET_CATEGORY_COUNT } from '@/types'
 import type { Transaction, Category, Asset } from '@/types'
 import TransactionList from '@/components/transactions/TransactionList'
 import TransactionForm from '@/components/transactions/TransactionForm'
@@ -24,9 +25,8 @@ export default function TransactionsPage() {
       getCategories(),
       getAssetsWithBalance(),
     ])
-    if (cats.length === 0 && session?.user.id) {
-      await seedDefaultCategories(session.user.id)
-      setCategories(await getCategories())
+    if (cats.length < DEFAULT_BUDGET_CATEGORY_COUNT && session?.user.id) {
+      setCategories(await seedDefaultCategories(session.user.id))
     } else {
       setCategories(cats)
     }

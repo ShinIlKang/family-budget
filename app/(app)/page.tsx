@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useMonthStore } from '@/lib/monthStore'
 import { getMonthlySummary, getTransactions, getBudgetsWithUsage, getCategories, seedDefaultCategories, getFixedItemsSummary, getAssetsSummary } from '@/lib/queries'
+import { DEFAULT_BUDGET_CATEGORY_COUNT } from '@/types'
 import type { BudgetWithUsage, Transaction, AssetCategory } from '@/types'
 import SummaryCards from '@/components/dashboard/SummaryCards'
 import BudgetOverview from '@/components/dashboard/BudgetOverview'
@@ -24,14 +25,14 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     const cats = await getCategories()
-    if (cats.length === 0 && session?.user.id) {
+    if (cats.length < DEFAULT_BUDGET_CATEGORY_COUNT && session?.user.id) {
       await seedDefaultCategories(session.user.id)
     }
     const [sum, bdg, txns, fixedSum, assetSum] = await Promise.all([
       getMonthlySummary(current),
       getBudgetsWithUsage(current),
       getTransactions(current),
-      getFixedItemsSummary(),
+      getFixedItemsSummary(current.year, current.month),
       getAssetsSummary(),
     ])
     setSummary(sum)

@@ -20,8 +20,9 @@ export default function Step3LinkAssets({ onNext, onBack }: Props) {
 
   const load = useCallback(async () => {
     try {
+      const now = new Date()
       const [fi, a] = await Promise.all([
-        getFixedItems(),
+        getFixedItems(now.getFullYear(), now.getMonth() + 1),
         getAssetsWithBalance(),
       ])
       setFixedItems(fi.filter(f => f.is_active))
