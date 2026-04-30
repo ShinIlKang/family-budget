@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation'
 import { useMonthStore } from '@/lib/monthStore'
 import { addMonths, formatMonthYear } from '@/lib/utils'
 
-const HIDDEN_PATHS = ['/assets']
+const HIDDEN_PATHS = ['/assets', '/profile']
 
 export default function MonthSelector() {
   const pathname = usePathname()
